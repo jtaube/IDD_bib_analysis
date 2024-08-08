@@ -174,7 +174,7 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         else:
             names = [{'lname': fa_lname, 'fname': fa_fname}]
             fa_df = pd.DataFrame(names, columns=['fname', 'lname'])
-            odf = pred_fl_reg_name(fa_df, 'lname', 'fname')
+            odf = pred_fl_reg_name(fa_df, 'lname', 'fname') # this is the query I think
             n_race_queries = n_race_queries + 1
             fa_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']]
             full_name_data[(fa_lname, fa_fname)] = fa_race
@@ -192,14 +192,14 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         if fa_fname in first_name_data:
             fa_gender, fa_g = first_name_data[fa_fname]
         else:
-            fa_gender, fa_g = gen_api_query(gender_key, fa_fname, gb)
+            fa_gender, fa_g = genderize_query(gender_key, fa_fname, gb)
             n_gen_queries = n_gen_queries + 1
             first_name_data[fa_fname] = (fa_gender, fa_g)
 
         if la_fname in first_name_data:
             la_gender, la_g = first_name_data[la_fname]
         else:
-            la_gender, la_g = gen_api_query(gender_key, la_fname, gb)
+            la_gender, la_g = genderize_query(gender_key, la_fname, gb)
             n_gen_queries= n_gen_queries + 1
             first_name_data[la_fname] = (la_gender, la_g)
 
@@ -212,8 +212,8 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
              np.sum(la_race[1:]), '%s%s' % (fa_gender['gender'], la_gender['gender'])]).reshape(1, 6)
         paper_df = paper_df.append(pd.DataFrame(la_data, columns=columns), ignore_index=True)
 
-        mm = fa_g[0] * la_g[0]
-        wm = fa_g[1] * la_g[0]
+        mm = fa_g[0] * la_g[0] # 0 for men, take probability
+        wm = fa_g[1] * la_g[0] # 1 for women, take probability
         mw = fa_g[0] * la_g[1]
         ww = fa_g[1] * la_g[1]
         mm, wm, mw, ww = [mm, wm, mw, ww] / np.sum([mm, wm, mw, ww])
@@ -244,6 +244,7 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
 
     return mm, wm, mw, ww, WW, aw, wa, aa, citation_matrix, paper_df
 
+# this uses genderAPI, genderize.io is free for up to 100 a day with no API key
 def gen_api_query(gender_key, name, gb):
     url = "https://gender-api.com/get?key=" + gender_key + "&name=%s" % (quote(name))
     response = urlopen(url)
@@ -255,6 +256,19 @@ def gen_api_query(gender_key, name, gb):
         g = [gender['accuracy'] / 100., 0]
     if gender['gender'] == 'unknown':
         g = gb[:2]
+    return gender, g
+
+def genderize_query(name):
+    url = "https://api.genderize.io?name=" + name
+    response = urlopen(url)
+    decoded = response.read().decode('utf-8')
+    gender = json.loads(decoded)
+    if gender['gender'] == "female" & gender['probability'] >= 0.7:
+        g = [0, gender['probability']]
+    elif gender['gender'] == "male" & gender['probability'] >= 0.7:
+        g = [gender['probability'], 0]
+    else:
+        g = 0 # why are they putting the year here?
     return gender, g
 
 def print_statements(mm, wm, mw, ww, WW, aw, wa, aa):
