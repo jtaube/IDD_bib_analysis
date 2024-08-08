@@ -66,7 +66,8 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
     print('last author is %s %s ' % (authors[3], authors[2]))
     print("we don't count these, but check the predictions file to ensure your names did not slip through!")
 
-    citation_matrix = np.zeros((8, 8))
+    # citation_matrix = np.zeros((8, 8)) # 4race cats
+    citation_matrix = np.zeros((4, 4))
 
     print('looping through your references, predicting gender and race')
 
@@ -99,14 +100,14 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
                             'Gender (Im)balance in Citation Practices in Cognitive Neuroscience',
                             'Name-ethnicity classification from open sources',
                             'Predicting race and ethnicity from the sequence of characters in a name']
-    # save base gender rates
-    gender_base = get_gender_base(homedir)
+    # save base gender rates - we can't run this so what will happen? --> throws an error, should we ask them?
+    # gender_base = get_gender_base(homedir)
     # make a dictionary of names so we don't query the same thing twice
     full_name_data = {}
     first_name_data = {}
     n_gen_queries = 0
     n_race_queries = 0
-    for paper in tqdm.tqdm(bibfile.entries, total=len(bibfile.entries)):
+    for paper in tqdm.tqdm(bibfile.entries, total=len(bibfile.entries)): # loop through papers
         if paper in skip_selfCites:
             continue
         if bibfile.entries[paper].fields['title'] in diversity_bib_titles:
@@ -169,14 +170,15 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
             if la_lname.lower().strip() == authors[2].lower().strip():
                 continue
 
-        if (fa_lname, fa_fname) in full_name_data:
+        if (fa_lname, fa_fname) in full_name_data: #if you've already queried this name, use data from before
             fa_race = full_name_data[(fa_lname, fa_fname)]
         else:
             names = [{'lname': fa_lname, 'fname': fa_fname}]
             fa_df = pd.DataFrame(names, columns=['fname', 'lname'])
             odf = pred_fl_reg_name(fa_df, 'lname', 'fname') # this is the query I think
             n_race_queries = n_race_queries + 1
-            fa_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']]
+            # fa_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']] # 4race cats
+            fa_race = [odf['nh_white'], odf['asian'] + odf['hispanic'] + odf['nh_black']] # mine
             full_name_data[(fa_lname, fa_fname)] = fa_race
 
         if (la_lname, la_fname) in full_name_data:
@@ -186,7 +188,8 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
             la_df = pd.DataFrame(names, columns=['fname', 'lname'])
             odf = pred_fl_reg_name(la_df, 'lname', 'fname')
             n_race_queries = n_race_queries + 1
-            la_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']]
+            #la_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']] # 4race cats
+            la_race = [odf['nh_white'], odf['asian'] + odf['hispanic'] + odf['nh_black']] # mine
             full_name_data[(la_lname, la_fname)] = la_race
 
         if fa_fname in first_name_data:
@@ -217,22 +220,23 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         mw = fa_g[0] * la_g[1]
         ww = fa_g[1] * la_g[1]
         mm, wm, mw, ww = [mm, wm, mw, ww] / np.sum([mm, wm, mw, ww])
-
         gender.append([mm, wm, mw, ww])
+        
         ww = fa_race[0] * la_race[0]
         aw = np.sum(fa_race[1:]) * la_race[0]
         wa = fa_race[0] * np.sum(la_race[1:])
         aa = np.sum(fa_race[1:]) * np.sum(la_race[1:])
-
         race.append([ww, aw, wa, aa])
+        # we may want to change this to white vs PoC depending on sample size
 
-        paper_matrix = np.zeros((2, 8))
-        paper_matrix[0] = np.outer(fa_g, fa_race).flatten()
+        # paper_matrix = np.zeros((2, 8)) # 4race cats, two lists of length 8 (for intersectional identities), 1st for FA, 2nd for LA
+        paper_matrix = np.zeros((2, 4)) 
+        paper_matrix[0] = np.outer(fa_g, fa_race).flatten() # these are our data, basically matrix multiplication to intersect identities
         paper_matrix[1] = np.outer(la_g, la_race).flatten()
 
-        paper_matrix = np.outer(paper_matrix[0], paper_matrix[1])
+        paper_matrix = np.outer(paper_matrix[0], paper_matrix[1]) # matrix multiply to address author position
 
-        citation_matrix = citation_matrix + paper_matrix
+        citation_matrix = citation_matrix + paper_matrix # add up identities from each paper
         idx = idx + 1
 
     # report queries
@@ -255,7 +259,7 @@ def gen_api_query(gender_key, name, gb):
     if gender['gender'] == 'male':
         g = [gender['accuracy'] / 100., 0]
     if gender['gender'] == 'unknown':
-        g = gb[:2]
+        g = gb[:2] # fills with base rate for year of the pub
     return gender, g
 
 def genderize_query(name):
@@ -268,7 +272,7 @@ def genderize_query(name):
     elif gender['gender'] == "male" & gender['probability'] >= 0.7:
         g = [gender['probability'], 0]
     else:
-        g = 0 # why are they putting the year here?
+        g = [0,0] # why are they putting the year here? I think we don't want these so putting 0, we want a 0.7 threshold though
     return gender, g
 
 def print_statements(mm, wm, mw, ww, WW, aw, wa, aa):
@@ -322,7 +326,8 @@ def print_statements(mm, wm, mw, ww, WW, aw, wa, aa):
 
 def plot_heatmaps(citation_matrix, homedir):
     cmap = sns.diverging_palette(220, 10, as_cmap=True)
-    names = ['white_m','api_m','hispanic_m','black_m','white_w','api_w','hispanic_w','black_w']
+    # names = ['white_m','api_m','hispanic_m','black_m','white_w','api_w','hispanic_w','black_w'] # 4race cat
+    names = ['white_m','poc_m','white_w','poc_w']
     plt.close()
     sns.set(style='white')
     fig, axes = plt.subplots(ncols=2,nrows=1,figsize=(7.5,4))
@@ -337,8 +342,21 @@ def plot_heatmaps(citation_matrix, homedir):
 
     citation_matrix_sum = citation_matrix / np.sum(citation_matrix) 
 
-    expected = np.load('/%s/data/expected_matrix_florida.npy'%(homedir))
-    expected = expected/np.sum(expected)
+    # expected = np.load('/%s/data/expected_matrix_florida.npy'%(homedir)) # this is where we need to change to our expected matrix, 
+    # # there's is 8x8 and not fractions
+    # expected = expected/np.sum(expected)
+    # using global north values
+    'white_m','poc_m','white_w','poc_w'
+    # FA - LA
+    #[[WM-WM, WM-PM, WM-WW, WM-PW],
+    # [PM-WM, PM-PM, PM-WW, PM-PW],
+    # [WW-WM, WW-PM, WW-WW, WW-PW],
+    # [PW-WM, PW-PM, PW-WW, PW-PW]] # check that this is right matrix setup
+    
+    expected = [[0.12, 0.11, 0.04, 0.03],
+                [0.16, 0.14, 0.05, 0.03],
+                [0.08, 0.07, 0.03, 0.02],
+                [0.05, 0.05, 0.02, 0.01]]
 
     percent_overunder = np.ceil( ((citation_matrix_sum - expected) / expected)*100)
     plt.sca(axes[1])
@@ -350,11 +368,11 @@ def plot_heatmaps(citation_matrix, homedir):
     heat.set_title('percentage over/under-citations')
     plt.tight_layout()
 
-    plt.savefig('/home/jovyan/race_gender_citations.pdf')
+    plt.savefig('race_gender_citations.pdf')
 
-def plot_histograms():
+def plot_gender_histograms():
     # Plot a histogram #
-    names = pd.read_csv('/home/jovyan/predictions.csv')
+    names = pd.read_csv('predictions.csv')
     total_citations = names.CitationKey.nunique()
     names.GendCat = names.GendCat.str.replace('female', 'W', regex=False)
     names.GendCat = names.GendCat.str.replace('male', 'M', regex=False)
@@ -380,7 +398,8 @@ def plot_histograms():
                                              (dat_for_plot.GendCat == 'MM'),:]
     # MM,MW,WM,WW
     # 58.4% for man/man, 9.4% for man/woman, 25.5% for woman/man, and 6.7% for woman/woman
-    baserate = [6.7, 9.4, 25.5, 58.4]
+    #baserate = [6.7, 9.4, 25.5, 58.4]
+    baserate = [7.7, 11.3, 18, 63] # base rates for IDD from JCT
     dat_for_baserate_plot['baserate'] = baserate
     dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=
                                                          dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate
@@ -398,6 +417,8 @@ def plot_histograms():
     plt.xlabel('Predicted gender category')
     plt.ylabel('% of citations relative to benchmarks')
     plt.tight_layout()
+
+    ### TODO: repeat this for race/ethnicity!!
 
 
 def check_genderAPI_balance(genderAPI_key, homedir):
