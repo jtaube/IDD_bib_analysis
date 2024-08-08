@@ -43,19 +43,19 @@ def namesFromXref(cr, doi, title, authorPos):
     return name
 
 
-def get_gender_base(homedir):
-    """
-    for unknown gender, fill with base rates
-    you will never / can't run this (that file is too big to share)
-    """
+# def get_gender_base(homedir):
+#     """
+#     for unknown gender, fill with base rates
+#     you will never / can't run this (that file is too big to share)
+#     """
 
-    with open(homedir + 'data/gender_base' + '.pkl', 'rb') as f:
-        gender_base = pickle.load(f)
+#     with open(homedir + 'data/gender_base' + '.pkl', 'rb') as f:
+#         gender_base = pickle.load(f)
 
-    return gender_base
+#     return gender_base
 
 
-def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', method='florida'):
+def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida'):
     """
 
     :param authors:
@@ -119,10 +119,10 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         else:
             year = int(bibfile.entries[paper].fields['year'])
 
-        if year not in gender_base.keys():
-            gb = gender_base[1995]
-        else:
-            gb = gender_base[year]
+        # if year not in gender_base.keys():
+        #     gb = gender_base[1995]
+        # else:
+        #     gb = gender_base[year]
 
         fa = bibfile.entries[paper].persons['author'][0]
         fa_lname = fa.last_names[0]
@@ -195,32 +195,33 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         if fa_fname in first_name_data:
             fa_gender, fa_g = first_name_data[fa_fname]
         else:
-            fa_gender, fa_g = genderize_query(gender_key, fa_fname, gb)
+            fa_gender, fa_g = genderize_query(fa_fname) #, gb)
             n_gen_queries = n_gen_queries + 1
             first_name_data[fa_fname] = (fa_gender, fa_g)
 
         if la_fname in first_name_data:
             la_gender, la_g = first_name_data[la_fname]
         else:
-            la_gender, la_g = genderize_query(gender_key, la_fname, gb)
+            la_gender, la_g = genderize_query(la_fname) #, gb)
             n_gen_queries= n_gen_queries + 1
             first_name_data[la_fname] = (la_gender, la_g)
 
         fa_data = np.array(
-            [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['accuracy']), fa_race[0],
-             np.sum(fa_race[1:]), '']).reshape(1, 6)
-        paper_df = paper_df.append(pd.DataFrame(fa_data, columns=columns), ignore_index=True)
+            [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']), fa_race[0],
+             np.sum(fa_race[1:]), ''], dtype = "object").reshape(1, 6)
+        paper_df = pd.concat([paper_df, pd.DataFrame(fa_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
         la_data = np.array(
-            [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['accuracy']), la_race[0],
-             np.sum(la_race[1:]), '%s%s' % (fa_gender['gender'], la_gender['gender'])]).reshape(1, 6)
-        paper_df = paper_df.append(pd.DataFrame(la_data, columns=columns), ignore_index=True)
+            [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']), la_race[0],
+             np.sum(la_race[1:]), '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
+        paper_df = pd.concat([paper_df, pd.DataFrame(la_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
 
         mm = fa_g[0] * la_g[0] # 0 for men, take probability
         wm = fa_g[1] * la_g[0] # 1 for women, take probability
         mw = fa_g[0] * la_g[1]
         ww = fa_g[1] * la_g[1]
-        mm, wm, mw, ww = [mm, wm, mw, ww] / np.sum([mm, wm, mw, ww])
-        gender.append([mm, wm, mw, ww])
+        # LEFT OFF: maybe change this so if both genders are unknown then just skip this paper
+        mm, wm, mw, ww = [mm, wm, mw, ww] / max(np.sum([mm, wm, mw, ww]), 1) # this could be sum of 0s and divide by 0
+        gender.append([mm, wm, mfw, ww])
         
         ww = fa_race[0] * la_race[0]
         aw = np.sum(fa_race[1:]) * la_race[0]
@@ -267,9 +268,9 @@ def genderize_query(name):
     response = urlopen(url)
     decoded = response.read().decode('utf-8')
     gender = json.loads(decoded)
-    if gender['gender'] == "female" & gender['probability'] >= 0.7:
+    if gender['gender'] == "female" and gender['probability'] >= 0.7:
         g = [0, gender['probability']]
-    elif gender['gender'] == "male" & gender['probability'] >= 0.7:
+    elif gender['gender'] == "male" and gender['probability'] >= 0.7:
         g = [gender['probability'], 0]
     else:
         g = [0,0] # why are they putting the year here? I think we don't want these so putting 0, we want a 0.7 threshold though
