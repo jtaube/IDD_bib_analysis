@@ -55,7 +55,7 @@ def namesFromXref(cr, doi, title, authorPos):
 #     return gender_base
 
 
-def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida'):
+def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida', gender_threshold = 0.7):
     """
 
     :param authors:
@@ -107,6 +107,7 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida')
     first_name_data = {}
     n_gen_queries = 0
     n_race_queries = 0
+    n_skipped_unknown = 0
     for paper in tqdm.tqdm(bibfile.entries, total=len(bibfile.entries)): # loop through papers
         if paper in skip_selfCites:
             continue
@@ -178,7 +179,7 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida')
             odf = pred_fl_reg_name(fa_df, 'lname', 'fname') # this is the query I think
             n_race_queries = n_race_queries + 1
             # fa_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']] # 4race cats
-            fa_race = [odf['nh_white'], odf['asian'] + odf['hispanic'] + odf['nh_black']] # mine
+            fa_race = [odf['nh_white'][0], 1 - odf['nh_white'][0]] # mine, labelled lists causing problems
             full_name_data[(fa_lname, fa_fname)] = fa_race
 
         if (la_lname, la_fname) in full_name_data:
@@ -189,39 +190,45 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida')
             odf = pred_fl_reg_name(la_df, 'lname', 'fname')
             n_race_queries = n_race_queries + 1
             #la_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']] # 4race cats
-            la_race = [odf['nh_white'], odf['asian'] + odf['hispanic'] + odf['nh_black']] # mine
+            la_race = [odf['nh_white'][0], 1 - odf['nh_white'][0]] # mine
             full_name_data[(la_lname, la_fname)] = la_race
 
         if fa_fname in first_name_data:
             fa_gender, fa_g = first_name_data[fa_fname]
         else:
-            fa_gender, fa_g = genderize_query(fa_fname) #, gb)
+            fa_gender, fa_g = genderize_query(fa_fname, gender_threshold) #, gb)
+            #fa_gender, fa_g = "female", [1, 0]
             n_gen_queries = n_gen_queries + 1
             first_name_data[fa_fname] = (fa_gender, fa_g)
 
         if la_fname in first_name_data:
             la_gender, la_g = first_name_data[la_fname]
         else:
-            la_gender, la_g = genderize_query(la_fname) #, gb)
+            la_gender, la_g = genderize_query(la_fname, gender_threshold) #, gb)
+            #la_gender, la_g = "male", [0, 1]
             n_gen_queries= n_gen_queries + 1
             first_name_data[la_fname] = (la_gender, la_g)
 
+        print((fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']), fa_race[0],
+             fa_race[1])
         fa_data = np.array(
             [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']), fa_race[0],
-             np.sum(fa_race[1:]), ''], dtype = "object").reshape(1, 6)
+             fa_race[1], ''], dtype = "object").reshape(1, 6)
         paper_df = pd.concat([paper_df, pd.DataFrame(fa_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
+        print((la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']), la_race[0],
+             la_race[1])
         la_data = np.array(
             [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']), la_race[0],
-             np.sum(la_race[1:]), '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
+             la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
         paper_df = pd.concat([paper_df, pd.DataFrame(la_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
 
         mm = fa_g[0] * la_g[0] # 0 for men, take probability
         wm = fa_g[1] * la_g[0] # 1 for women, take probability
         mw = fa_g[0] * la_g[1]
         ww = fa_g[1] * la_g[1]
-        # LEFT OFF: maybe change this so if both genders are unknown then just skip this paper
-        mm, wm, mw, ww = [mm, wm, mw, ww] / max(np.sum([mm, wm, mw, ww]), 1) # this could be sum of 0s and divide by 0
-        gender.append([mm, wm, mfw, ww])
+        # maybe change this so if both genders are unknown then just skip this paper
+        mm, wm, mw, ww = [mm, wm, mw, ww] / np.sum([mm, wm, mw, ww]) # this could be sum of 0s and divide by 0
+        gender.append([mm, wm, mw, ww])
         
         ww = fa_race[0] * la_race[0]
         aw = np.sum(fa_race[1:]) * la_race[0]
@@ -247,6 +254,9 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida')
     mm, wm, mw, ww = np.mean(gender, axis=0) * 100
     WW, aw, wa, aa = np.mean(race, axis=0) * 100
 
+    print("MM: " + str(mm) + " WM: " + str(wm) + " MW: " + str(mw) + " WW: " + str(ww))
+    print("WhWh: " + str(WW) + "PoCWh: " + str(aw) + " WhPoC: " + str(wa) + " PoCPoC: " + str(aa))
+
     return mm, wm, mw, ww, WW, aw, wa, aa, citation_matrix, paper_df
 
 # this uses genderAPI, genderize.io is free for up to 100 a day with no API key
@@ -263,18 +273,25 @@ def gen_api_query(gender_key, name, gb):
         g = gb[:2] # fills with base rate for year of the pub
     return gender, g
 
-def genderize_query(name):
+def genderize_query(name, gender_threshold):
     url = "https://api.genderize.io?name=" + name
     response = urlopen(url)
     decoded = response.read().decode('utf-8')
     gender = json.loads(decoded)
-    if gender['gender'] == "female" and gender['probability'] >= 0.7:
-        g = [0, gender['probability']]
-    elif gender['gender'] == "male" and gender['probability'] >= 0.7:
-        g = [gender['probability'], 0]
-    else:
-        g = [0,0] # why are they putting the year here? I think we don't want these so putting 0, we want a 0.7 threshold though
+    if gender['gender'] == "female":
+        if gender['probability'] >= gender_threshold:
+            g = [0, gender['probability']]
+        else: # below threshold
+            g = [gender['probability'], 1 - gender["probability"]]
+            gender['gender'] = "unknown" # reset to unknown
+    elif gender['gender'] == "male":
+        if gender['probability'] >= gender_threshold:
+            g = [gender['probability'], 0]
+        else: # below threshold
+            g = [1 - gender['probability'], gender['probability']] 
+            gender['gender'] = "unknown" # reset to unknown
     return gender, g
+    
 
 def print_statements(mm, wm, mw, ww, WW, aw, wa, aa):
     statement = ("Recent work in several fields of science has identified a bias in citation practices such that papers from women and other minority scholars "
@@ -321,7 +338,8 @@ def print_statements(mm, wm, mw, ww, WW, aw, wa, aa):
     statementLatex = statementLatex.replace('WW', np.array2string(WW.values[0], formatter={'float_kind':lambda x: "%.2f" % x}))
     statementLatex = statementLatex.replace('AW', np.array2string(aw.values[0], formatter={'float_kind':lambda x: "%.2f" % x}))
     statementLatex = statementLatex.replace('WA', np.array2string(wa.values[0], formatter={'float_kind':lambda x: "%.2f" % x}))
-    statementLatex = statementLatex.replace('AA', str(np.around(aa, 2)))
+    statementLatex = statementLatex.replace('AA', np.array2string(aa.values[0], formatter={'float_kind':lambda x: "%.2f" % x}))
+                                            #str(np.around(aa, 2)))
 
     return statement, statementLatex
 
@@ -377,7 +395,7 @@ def plot_gender_histograms():
     total_citations = names.CitationKey.nunique()
     names.GendCat = names.GendCat.str.replace('female', 'W', regex=False)
     names.GendCat = names.GendCat.str.replace('male', 'M', regex=False)
-    names.GendCat = names.GendCat.str.replace('unknown', 'U', regex=False)
+    names.GendCat = names.GendCat.str.replace('unknown', 'U', regex=False) # where are these Us from???
     gend_cats = names['GendCat'].dropna().unique()  # get a vector of all the gender categories in your paper
 
     # Create a data frame that will be used to plot the histogram. This will have the gender category (e.g., WW, MM) in the first column and the percentage (e.g., number of WW citations divided by total number of citations * 100) in the second column #
@@ -393,14 +411,14 @@ def plot_gender_histograms():
     dat_for_plot = dat_for_plot.assign(percentage=dat_for_plot['count']/total_citations*100)
 
     # Create a data frame with only the WW, MW, WM, MM categories and their base rates - to plot percent citations relative to benchmarks
-    dat_for_baserate_plot = dat_for_plot.loc[(dat_for_plot.GendCat == 'WW') |
-                                             (dat_for_plot.GendCat == 'MW') |
+    dat_for_baserate_plot = dat_for_plot.loc[(dat_for_plot.GendCat == 'MM') |
                                              (dat_for_plot.GendCat == 'WM') |
-                                             (dat_for_plot.GendCat == 'MM'),:]
+                                             (dat_for_plot.GendCat == 'MW') |
+                                             (dat_for_plot.GendCat == 'WW'),:]
     # MM,MW,WM,WW
     # 58.4% for man/man, 9.4% for man/woman, 25.5% for woman/man, and 6.7% for woman/woman
     #baserate = [6.7, 9.4, 25.5, 58.4]
-    baserate = [7.7, 11.3, 18, 63] # base rates for IDD from JCT
+    baserate = [63, 18, 11.3, 7.7] # base rates for IDD from JCT
     dat_for_baserate_plot['baserate'] = baserate
     dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=
                                                          dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate
@@ -414,7 +432,7 @@ def plot_gender_histograms():
     plt.tight_layout()
 
     plt.figure()
-    sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='citation_rel_to_baserate', order=['WW','WM','MW','MM'], hue='GendCat')
+    sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='citation_rel_to_baserate', order=['MM','WM','MW','WW'], hue='GendCat')
     plt.xlabel('Predicted gender category')
     plt.ylabel('% of citations relative to benchmarks')
     plt.tight_layout()
