@@ -339,7 +339,7 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
             author = bib_data.entries[key].persons['author']
         except:
             author = bib_data.entries[key].persons['editor']
-        print(author)
+            
         FA = author[0].rich_first_names # what is rich_first_names? it's from pybtex and is a list of first names converted to rich text
         LA = author[-1].rich_first_names
 
@@ -352,34 +352,40 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
         else:
             LA_initials_check = False
 
-        print(FA)
         # at this point FA looks like: [Text('Ryan')]
         #FA = re.sub("([A-Z]{1}\.\s)([a-zA-z]+\s?[A-Z]?\.?)", lambda m: m.group(2), FA)
         FA = convertLatexSpecialChars(str(FA)[7:-3]).translate(str.maketrans('', '', string.punctuation)).replace(
             'Protected', "").replace(" ", "")# protected deals with accents
         #FA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", FA).replace(" ", "") # do I need this part that removed initials?
         #FA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], FA) # my previous code to deal with accents
-        print(FA)
         #LA = re.sub("([A-Z]{1}\.\s)([a-zA-z]+\s?[A-Z]?\.?)", lambda m: m.group(2), LA)
         LA = convertLatexSpecialChars(str(LA)[7:-3]).translate(str.maketrans('', '', string.punctuation)).replace(
             'Protected', "").replace(" ", "")
         #LA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", LA).replace(" ", "")
         #LA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], LA)
-        print(LA)
+        
         # check if we grabbed a first initial when a full middle name was available
+        # this is great but doesn't handle if they have another initial
         if (len(FA) == 1):
             mn = author[0].rich_middle_names
-            mn = convertLatexSpecialChars(str(mn)[7:-3]).translate(
+            if len(mn) != 0:
+                mn = mn[0] # get first of middle names
+                mn = convertLatexSpecialChars(str(mn)).translate( # removed 7:3 bc not Text object anymore
                 str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", '')
-            if len(mn) > 1:
-                FA = mn
+                if len(mn) > 1:
+                    FA = mn
         if (len(LA) == 1):
             mn = author[-1].rich_middle_names
-            mn = convertLatexSpecialChars(str(mn)[7:-3]).translate(
-                str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", '')
-            if len(mn) > 1:
-                LA = mn
-
+            if len(mn) != 0:
+                mn = mn[0]
+                mn = convertLatexSpecialChars(str(mn)).translate(
+                    str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", '')
+                if len(mn) > 1:
+                    LA = mn
+        
+        print(FA)
+        print(LA)
+        
         # check that we got a name (not an initial) from the bib file, if not try using the title in the crossref API
         try:
             title = bib_data.entries[key].fields['title'].replace(',', '').replace('{', '').replace('}','')
