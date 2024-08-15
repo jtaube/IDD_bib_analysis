@@ -340,29 +340,39 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
         except:
             author = bib_data.entries[key].persons['editor']
             
-        FA = author[0].rich_first_names # what is rich_first_names? it's from pybtex and is a list of first names converted to rich text
-        LA = author[-1].rich_first_names
+        FA = author[0] #.rich_first_names # what is rich_first_names? it's from pybtex and is a list of first names converted to rich text
+        LA = author[-1] #.rich_first_names
 
-        if '.' in str(FA):
+        print(FA)
+        print(LA)
+        print(author[-1])
+        print(author[0])
+
+        if all(len(name) < 2 for name in str(FA).replace(".", "").split(" ")): # may need to move this after removal of protected characters
             FA_initials_check = True
+            print(FA)
         else:
             FA_initials_check = False
-        if '.' in str(LA):
+        if all(len(name) < 2 for name in str(LA).replace(".", "").split(" ")):
             LA_initials_check = True
+            print(LA)
         else:
             LA_initials_check = False
 
         # at this point FA looks like: [Text('Ryan')]
-        #FA = re.sub("([A-Z]{1}\.\s)([a-zA-z]+\s?[A-Z]?\.?)", lambda m: m.group(2), FA)
-        FA = convertLatexSpecialChars(str(FA)[7:-3]).translate(str.maketrans('', '', string.punctuation)).replace(
+        FA = re.sub("([A-Z]{1}\.\s)([a-zA-z]+\s?[A-Z]?\.?)", lambda m: m.group(2), FA)
+        #FA = convertLatexSpecialChars(str(FA)[7:-3]).translate(str.maketrans('', '', string.punctuation)).replace(
             'Protected', "").replace(" ", "")# protected deals with accents
-        #FA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", FA).replace(" ", "") # do I need this part that removed initials?
+        FA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", FA).replace(" ", "") # do I need this part that removed initials?
         #FA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], FA) # my previous code to deal with accents
         #LA = re.sub("([A-Z]{1}\.\s)([a-zA-z]+\s?[A-Z]?\.?)", lambda m: m.group(2), LA)
         LA = convertLatexSpecialChars(str(LA)[7:-3]).translate(str.maketrans('', '', string.punctuation)).replace(
             'Protected', "").replace(" ", "")
         #LA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", LA).replace(" ", "")
         #LA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], LA)
+
+        print(FA)
+        print(LA)
         
         # check if we grabbed a first initial when a full middle name was available
         # this is great but doesn't handle if they have another initial
@@ -382,9 +392,6 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
                     str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", '')
                 if len(mn) > 1:
                     LA = mn
-        
-        print(FA)
-        print(LA)
         
         # check that we got a name (not an initial) from the bib file, if not try using the title in the crossref API
         try:
@@ -521,7 +528,7 @@ def bib_check(homedir):
         row_id, first_author, last_author, _, self_cite, bib_key, xref = row
         authors_full_list.append(first_author)  # For counting the number of query calls needed
         authors_full_list.append(last_author)
-        if len(first_author) < 2 or len(last_author) < 2 or '.' in first_author + last_author:
+        if len(first_author) < 2 or len(last_author) < 2 or '.' in first_author + last_author: # might need to change 
             if bib_key not in skip_selfCites:
                 incomplete_name_bib_keys.append(bib_key)
 
