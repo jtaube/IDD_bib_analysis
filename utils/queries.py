@@ -80,6 +80,11 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida',
     idx = 0
     # skip self-citations
     authors_full_list = pd.read_csv(homedir + 'cleanedBib.csv')
+    
+    authors_list_length = authors_full_list.loc[authors_full_list['SelfCite'] == 'N']
+    total_names_needed = authors_full_list.FA.nunique() + authors_full_list.LA.nunique()
+    print(total_names_needed)
+          
     skip_selfCites = list(authors_full_list.loc[authors_full_list['SelfCite'] == 'Y']['CitationKey'])
     skip_xref = list(authors_full_list.loc[authors_full_list['UsedXref'] == 'Y']['CitationKey'])
     # skip citation diversity statement papers

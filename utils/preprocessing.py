@@ -343,37 +343,30 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
         FA = author[0] #.rich_first_names # what is rich_first_names? it's from pybtex and is a list of first names converted to rich text
         LA = author[-1] #.rich_first_names
 
-        print(FA)
-        print(LA)
-        print(author[-1])
-        print(author[0])
-
-        if all(len(name) < 2 for name in str(FA).replace(".", "").split(" ")): # may need to move this after removal of protected characters
+        if all(len(name) < 2 for name in str(FA).split(", ")[1].replace(".", "").split(" ")): # may need to move this after removal of protected characters
+            # split , so get first name, replace periods with plain initial, split on spaces so can see if all initials
             FA_initials_check = True
-            print(FA)
+            print("initials: " + str(FA))
         else:
             FA_initials_check = False
-        if all(len(name) < 2 for name in str(LA).replace(".", "").split(" ")):
+        if all(len(name) < 2 for name in str(LA).split(", ")[1].replace(".", "").split(" ")):
             LA_initials_check = True
-            print(LA)
+            print("initials: " + str(LA))
         else:
             LA_initials_check = False
 
         # at this point FA looks like: [Text('Ryan')]
-        FA = re.sub("([A-Z]{1}\.\s)([a-zA-z]+\s?[A-Z]?\.?)", lambda m: m.group(2), FA)
-        #FA = convertLatexSpecialChars(str(FA)[7:-3]).translate(str.maketrans('', '', string.punctuation)).replace(
-            'Protected', "").replace(" ", "")# protected deals with accents
-        FA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", FA).replace(" ", "") # do I need this part that removed initials?
+        FA = convertLatexSpecialChars(str(FA))
+        FA = re.sub("([A-Z]{1}\.\s)*([a-zA-z]+)(\s{1}[A-Z]{1}\.{1})*", lambda m: m.group(2), FA)
+        #.translate(str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", "")# protected deals with accents
+        # FA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", FA).replace(" ", "") # do I need this part that removed initials?
         #FA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], FA) # my previous code to deal with accents
-        #LA = re.sub("([A-Z]{1}\.\s)([a-zA-z]+\s?[A-Z]?\.?)", lambda m: m.group(2), LA)
-        LA = convertLatexSpecialChars(str(LA)[7:-3]).translate(str.maketrans('', '', string.punctuation)).replace(
-            'Protected', "").replace(" ", "")
+        LA = convertLatexSpecialChars(str(LA))
+        LA = re.sub("([A-Z]{1}\.\s)*([a-zA-z]+)(\s{1}[A-Z]{1}\.{1})*", lambda m: m.group(2), LA)
+        #.translate(str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", "")
         #LA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", LA).replace(" ", "")
         #LA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], LA)
 
-        print(FA)
-        print(LA)
-        
         # check if we grabbed a first initial when a full middle name was available
         # this is great but doesn't handle if they have another initial
         if (len(FA) == 1):
@@ -419,7 +412,7 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
         selfCite = self_cites(author, yourFirstAuthor,yourLastAuthor, optionalEqualContributors, FA, LA, counter, key)
         counter += 1
         with open(outPath, 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer = csv.writer(csvfile, delimiter=',') #, quotechar='|', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(
                 [counter, convertSpecialCharsToUTF8(FA), convertSpecialCharsToUTF8(LA), title, selfCite, key, used_xref])
 
@@ -495,14 +488,14 @@ def self_cites(author, yourFirstAuthor, yourLastAuthor, optionalEqualContributor
                       selfCiteCheck2b]
     if sum([len(check) for check in selfCiteChecks]) + nameCount > 0:
         selfCite = 'Y'
-        if len(FA) < 2:
+        if len(FA) < 2 or len(LA) < 2 or all(len(name) < 2 for name in FA.split(" ")) or all(len(name) < 2 for name in LA.split(" ")):
             print(
-                str(counter) + ": " + key + "\t\t  <-- self-citation <--  ***NAME MISSING OR POSSIBLY INCOMPLETE***")
+                str(counter) + ": " + key + "\t\t  <-- self-citation <--  ***NAME MISSING OR POSSIBLY INCOMPLETE***") # I messed this up somehow, need to fix
         else:
             print(str(counter) + ": " + key + "  <-- self-citation")
     else:
         selfCite = 'N'
-        if len(FA) < 2:
+        if len(FA) < 2 or len(LA) < 2 or all(len(name) < 2 for name in FA.split(" ")) or all(len(name) < 2 for name in LA.split(" ")):
             print(str(counter) + ": " + key + "\t\t  <--  ***NAME MISSING OR POSSIBLY INCOMPLETE***")
         else:
             print(str(counter) + ": " + key)
