@@ -13,7 +13,6 @@ import numpy as np
 from time import sleep
 import re
 
-
 def checkcites_output(aux_file):
     '''take in aux file for tex document, return list of citation keys
     that are in .bib file but not in document'''
@@ -356,13 +355,14 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
             LA_initials_check = False
 
         # at this point FA looks like: [Text('Ryan')]
-        FA = convertLatexSpecialChars(str(FA))
-        FA = re.sub("([A-Z]{1}\.\s)*([a-zA-z]+)(\s{1}[A-Z]{1}\.{1})*", lambda m: m.group(2), FA)
+        FA = convertSpecialCharsToUTF8(str(FA)) # was latex conversion
+        # this should deal with initial then first name, initial then first name then another initial, full first and middle names
+        FA = re.sub("([A-Z]{1}\.\s)*([a-zA-z]+)(\s{1}[a-zA-z]+\.?)*", lambda m: m.group(2), FA)
         #.translate(str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", "")# protected deals with accents
         # FA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", FA).replace(" ", "") # do I need this part that removed initials?
         #FA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], FA) # my previous code to deal with accents
-        LA = convertLatexSpecialChars(str(LA))
-        LA = re.sub("([A-Z]{1}\.\s)*([a-zA-z]+)(\s{1}[A-Z]{1}\.{1})*", lambda m: m.group(2), LA)
+        LA = convertSpecialCharsToUTF8(str(LA)) # was latex conversion
+        LA = re.sub("([A-Z]{1}\.\s)*([a-zA-z]+)(\s{1}[a-zA-z]+\.?)*", lambda m: m.group(2), LA)
         #.translate(str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", "")
         #LA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", LA).replace(" ", "")
         #LA = re.sub("{\\\[^a-zA-Z]*([a-zA-z])}", lambda m: m.group(0)[-2], LA)

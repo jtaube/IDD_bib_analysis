@@ -55,7 +55,8 @@ def namesFromXref(cr, doi, title, authorPos):
 #     return gender_base
 
 
-def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida', gender_threshold = 0.7):
+def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', method='florida',
+                   gender_threshold = 0.7, no_credits_left = False):
     """
 
     :param authors:
@@ -82,11 +83,17 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida',
     authors_full_list = pd.read_csv(homedir + 'cleanedBib.csv')
     
     authors_list_length = authors_full_list.loc[authors_full_list['SelfCite'] == 'N']
-    total_names_needed = authors_full_list.FA.nunique() + authors_full_list.LA.nunique()
-    print(total_names_needed)
+    total_names_needed = authors_list_length.FA.nunique() + authors_list_length.LA.nunique()
+    #print(total_names_needed)
+
+    if total_names_needed > 100 or no_credits_left:
+        print("using genderAPI for gender inference due to bibliography size")
+    else:
+        print("using genderize.io for gender inference")
+
           
-    skip_selfCites = list(authors_full_list.loc[authors_full_list['SelfCite'] == 'Y']['CitationKey'])
-    skip_xref = list(authors_full_list.loc[authors_full_list['UsedXref'] == 'Y']['CitationKey'])
+    # skip_selfCites = list(authors_full_list.loc[authors_full_list['SelfCite'] == 'Y']['CitationKey'])
+    # skip_xref = list(authors_full_list.loc[authors_full_list['UsedXref'] == 'Y']['CitationKey'])
     # skip citation diversity statement papers
     diversity_bib_titles = ['The extent and drivers of gender imbalance in neuroscience reference lists',
                             'The gender citation gap in international relations',
@@ -113,51 +120,47 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida',
     n_gen_queries = 0
     n_race_queries = 0
     n_skipped_unknown = 0
-    for paper in tqdm.tqdm(bibfile.entries, total=len(bibfile.entries)): # loop through papers
-        if paper in skip_selfCites:
+    for index, paper in tqdm.tqdm(authors_full_list.iterrows(), total = len(authors_full_list.index)): 
+    #for paper in tqdm.tqdm(bibfile.entries, total=len(bibfile.entries)): # loop through papers
+        # tqdm just adds a progress bar. but why are we using bibfile.entries?! use the cleanedBib.csv we put all the work into
+        #if paper in skip_selfCites:
+        if paper.loc["SelfCite"] == "Y":
             continue
-        if bibfile.entries[paper].fields['title'] in diversity_bib_titles:
+        #if bibfile.entries[paper].fields['title'] in diversity_bib_titles:
+        if paper.loc["Title"] in diversity_bib_titles:
             continue
-        if 'author' not in bibfile.entries[paper].persons.keys():
-            continue  # some editorials have no authors
-        if 'year' not in bibfile.entries[paper].fields.keys():
-            year = 2020
-        else:
-            year = int(bibfile.entries[paper].fields['year'])
+        # TODO: revisit this editor issue
+        # if 'author' not in bibfile.entries[paper].persons.keys(): # not sure about this one
+        #     continue  # some editorials have no authors
 
-        # if year not in gender_base.keys():
-        #     gb = gender_base[1995]
-        # else:
-        #     gb = gender_base[year]
+        fa = paper.loc["FA"] #bibfile.entries[paper].persons['author'][0]
+        fa_lname = fa.split(", ")[0] #fa.last_names[0]
+        la = paper.loc["LA"] #bibfile.entries[paper].persons['author'][-1]
+        la_lname = la.split(", ")[0] #la.last_names[0]
 
-        fa = bibfile.entries[paper].persons['author'][0]
-        fa_lname = fa.last_names[0]
-        la = bibfile.entries[paper].persons['author'][-1]
-        la_lname = la.last_names[0]
-
-        if paper in skip_xref:
-            fa_fname = authors_full_list.loc[authors_full_list['CitationKey'] == paper]['FA'].to_string()
-            la_fname = authors_full_list.loc[authors_full_list['CitationKey'] == paper]['LA'].to_string()
-        else:
-            try:
-                fa_fname = fa.first_names[0]
-            except:
-                fa_fname = fa.last_names[0]  # for people like Plato
-                
-            try:
-                la_fname = la.first_names[0]
-            except:
-                la_fname = la.last_names[0]  # for people like Plato
+        try:
+            fa_fname = fa.split(", ")[1]
+        except:
+            fa_fname = fa.split(", ")[0]  # for people like Plato
+            
+        try:
+            la_fname = la.split(", ")[1]
+        except:
+            la_fname = fa.split(", ")[0] # for people like Plato
         
 
-        fa_fname = preprocessing.convertLatexSpecialChars(str(fa_fname.encode("ascii", errors="ignore").decode())).translate(
-            str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
-        fa_lname = preprocessing.convertLatexSpecialChars(str(fa_lname.encode("ascii", errors="ignore").decode())).translate(
-            str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
-        la_fname = preprocessing.convertLatexSpecialChars(str(la_fname.encode("ascii", errors="ignore").decode())).translate(
-            str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
-        la_lname = preprocessing.convertLatexSpecialChars(str(la_lname.encode("ascii", errors="ignore").decode())).translate(
-            str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
+        # fa_fname = preprocessing.convertLatexSpecialChars(str(fa_fname.encode("ascii", errors="ignore").decode())).translate(
+        #     str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
+        # fa_fname = preprocessing.convertSpecialCharsToUTF8(fa_fname)
+        # fa_lname = preprocessing.convertLatexSpecialChars(str(fa_lname.encode("ascii", errors="ignore").decode())).translate(
+        #     str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
+        # fa_lname = preprocessing.convertSpecialCharsToUTF8(fa_lname)
+        # la_fname = preprocessing.convertLatexSpecialChars(str(la_fname.encode("ascii", errors="ignore").decode())).translate(
+        #     str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
+        # la_fname = preprocessing.convertSpecialCharsToUTF8(la_fname)
+        # la_lname = preprocessing.convertLatexSpecialChars(str(la_lname.encode("ascii", errors="ignore").decode())).translate(
+        #     str.maketrans('', '', re.sub('\-', '', string.punctuation))).replace('Protected', "").replace(" ", '')
+        # la_lname = preprocessing.convertSpecialCharsToUTF8(la_lname)
 
         # double check for self cites again
         if fa_fname.lower().strip() == authors[1].lower().strip():
@@ -201,7 +204,11 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida',
         if fa_fname in first_name_data:
             fa_gender, fa_g = first_name_data[fa_fname]
         else:
-            fa_gender, fa_g = genderize_query(fa_fname, gender_threshold) #, gb)
+            #print(fa_fname)
+            if total_names_needed > 100 or no_credits_left:
+                fa_gender, fa_g = gen_api_query(gender_key, fa_fname, gender_threshold)
+            else:
+                fa_gender, fa_g = genderize_query(fa_fname, gender_threshold) 
             #fa_gender, fa_g = "female", [1, 0]
             n_gen_queries = n_gen_queries + 1
             first_name_data[fa_fname] = (fa_gender, fa_g)
@@ -209,22 +216,32 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida',
         if la_fname in first_name_data:
             la_gender, la_g = first_name_data[la_fname]
         else:
-            la_gender, la_g = genderize_query(la_fname, gender_threshold) #, gb)
+            #print(la_fname)
+            if total_names_needed > 100 or no_credits_left:
+                la_gender, la_g = gen_api_query(gender_key, la_fname, gender_threshold)
+            else:
+                la_gender, la_g = genderize_query(la_fname, gender_threshold) 
             #la_gender, la_g = "male", [0, 1]
             n_gen_queries= n_gen_queries + 1
             first_name_data[la_fname] = (la_gender, la_g)
 
-        print((fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']), fa_race[0],
-             fa_race[1])
-        fa_data = np.array(
-            [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']), fa_race[0],
-             fa_race[1], ''], dtype = "object").reshape(1, 6)
+        if total_names_needed > 100 or no_credits_left: # gender_API
+            fa_data = np.array(
+                [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['accuracy']), fa_race[0],
+                 fa_race[1], ''], dtype = "object").reshape(1, 6)
+            la_data = np.array(
+                [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['accuracy']), la_race[0],
+                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
+        else: # genderize.io
+            fa_data = np.array(
+                [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']*100), fa_race[0],
+                 fa_race[1], ''], dtype = "object").reshape(1, 6)
+            
+            la_data = np.array(
+                [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']*100), la_race[0],
+                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
+            
         paper_df = pd.concat([paper_df, pd.DataFrame(fa_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
-        print((la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']), la_race[0],
-             la_race[1])
-        la_data = np.array(
-            [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']), la_race[0],
-             la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
         paper_df = pd.concat([paper_df, pd.DataFrame(la_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
 
         mm = fa_g[0] * la_g[0] # 0 for men, take probability
@@ -265,17 +282,25 @@ def get_pred_demos(authors, homedir, bibfile, font='Palatino', method='florida',
     return mm, wm, mw, ww, WW, aw, wa, aa, citation_matrix, paper_df
 
 # this uses genderAPI, genderize.io is free for up to 100 a day with no API key
-def gen_api_query(gender_key, name, gb):
+def gen_api_query(gender_key, name, gender_threshold):
     url = "https://gender-api.com/get?key=" + gender_key + "&name=%s" % (quote(name))
     response = urlopen(url)
     decoded = response.read().decode('utf-8')
     gender = json.loads(decoded)
     if gender['gender'] == 'female':
-        g = [0, gender['accuracy'] / 100.]
+        if gender['accuracy']/100. >= gender_threshold: # accuracy is the percentage, convert to proportion
+            g = [0, gender['accuracy']/100.]
+        else: # below threshold
+            g = [gender['accuracy']/100., 1 - gender["accuracy"]/100.]
+            gender['gender'] = "unknown" # reset to unknown
     if gender['gender'] == 'male':
-        g = [gender['accuracy'] / 100., 0]
+        if gender['accuracy']/100. >= gender_threshold:
+            g = [gender['accuracy']/100., 0]
+        else: # below threshold
+            g = [1 - gender['accuracy']/100., gender['accuracy']/100.] 
+            gender['gender'] = "unknown" # reset to unknown
     if gender['gender'] == 'unknown':
-        g = gb[:2] # fills with base rate for year of the pub
+        g = [0.5,0.5] # TODO: previously fills with base rate for year of the pub but we won't have this info so swap out, 50/50 chance? we could also set to makeup of field in 2019 or makeup in field from our calculations by year
     return gender, g
 
 def genderize_query(name, gender_threshold):
