@@ -1,110 +1,14 @@
-![Network courtesy Ann Sizemore Blevins](img/repo_pic.png)
+This repo accompanies our manuscript in preparation on the extent of gender and race/ethnicity imbalance in infectious disease dynamics publication and citation practices. Much of the code is drawn from Dale Zhou and colleagues' [repository] (https://github.com/dalejn/cleanBib) and this work was inspired by Jordan Dworkin and colleagues' [work](https://doi.org/10.1038/s41593-020-0658-y) in neuroscience.
 
-# Table of Contents
+### Benchmark across infectious disease dynamics
 
-* [Diversity Statement and Code Notebook](https://github.com/dalejn/cleanBib#diversity-statement-and-code-notebook)
-
-  - [Diversity statement template](https://github.com/dalejn/cleanBib#diversity-statement-template)
-
-    + [Template](https://github.com/dalejn/cleanBib#template)
-
-    + [Benchmark across neuroscience](https://github.com/dalejn/cleanBib#benchmark-across-neuroscience)
-
-    + [Benchmark for papers using this tool](https://github.com/dalejn/cleanBib#benchmark-for-papers-using-this-tool)
-
-* [Instructions](https://github.com/dalejn/cleanBib#instructions)
-
-  - [Input/output](https://github.com/dalejn/cleanBib#inputoutput)
-
-* [FAQ](https://github.com/dalejn/cleanBib#faq)
-
-* [Other Resources](https://github.com/dalejn/cleanBib#other-resources)
-
-  - [Papers](https://github.com/dalejn/cleanBib#papers)
-
-  - [Journal Guidelines](https://github.com/dalejn/cleanBib#journal-guidelines)
-
-  - [Lists and Databases](https://github.com/dalejn/cleanBib#lists-and-databases)
-
-  - [Code](https://github.com/dalejn/cleanBib#code)
-
-  - [Related Projects](https://github.com/dalejn/cleanBib#related-projects)
-
-* [References](https://github.com/dalejn/cleanBib#references)
-
-* [Contributors](https://github.com/dalejn/cleanBib#contributors)
-
-* [Changelog](https://github.com/dalejn/cleanBib#changelog)
-
-# Diversity Statement and Code Notebook
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7375227.svg)](https://doi.org/10.5281/zenodo.7375227)
-
-Motivated from work by:
-
- * J. D. Dworkin, K. A. Linn, E. G. Teich, P. Zurn, R. T. Shinohara, and D. S. Bassett (2020). The extent and drivers of gender imbalance in neuroscience reference lists. [*Nature Neuroscience*.](https://doi.org/10.1038/s41593-020-0658-y)
-
- * M.A. Bertolero, J.D. Dworkin, S.U. David, C. López Lloreda, P. Srivastava, J. Stiso, D. Zhou, K. Dzirasa, D.A. Fair, A.N. Kaczkurkin, B.J. Marlin, D. Shohamy, L.Q. Uddin, P. Zurn, D.S. Bassett (2020). Racial and ethnic imbalance in neuroscience reference lists and intersections with gender. [*bioRxiv*.](https://www.biorxiv.org/content/10.1101/2020.10.12.336230v1)
-
- * X. Wang, J.D. Dworkin, D. Zhou, J. Stiso, E.B. Falk, D.S. Bassett, P. Zurn, D.M. Lydon-Staley (2021). Gendered citation practices in the field of communication. [*Annals of the International Communication Association*.](https://www.tandfonline.com/doi/full/10.1080/23808985.2021.1960180)
-
-See also these Perspectives with actionable recommendations moving forward for scientists at all levels:
-
-* J. D. Dworkin, P. Zurn, and D. S. Bassett (2020). (In)citing Action to Realize an Equitable Future. [*Neuron*.](https://doi.org/10.1016/j.neuron.2020.05.011)
-* P. Zurn, D.S. Bassett, and N.C. Rust (2020). The Citation Diversity Statement: A Practice of Transparency, A Way of Life. [*Trends in Cognitive Sciences*.](https://doi.org/10.1016/j.tics.2020.06.009)
-
-And editorials and research highlights of this work:  
-
-* A.L. Fairhall and E. Marder (2020). Acknowledging female voices. [*Nature Neuroscience*.](https://www.nature.com/articles/s41593-020-0667-x)  
-* Widening the scope of diversity (2020). [*Nature Neuroscience*. ](https://www.nature.com/articles/s41593-020-0670-2)  
-* Z. Budrikis (2020). Growing citation gender gap. [*Nature Reviews Physics*.](https://doi.org/10.1038/s42254-020-0207-3)
-* D. J. Sweet (2021). New at cell press: the inclusion and diversity statement. [*Cell*.](https://www.sciencedirect.com/science/article/pii/S0092867420316895?via%3Dihub)
-* B. Rowson, S.M. Duma, M.R. King, I. Efimov, A. Saterbak, and N.C. Chesler (2021). Citation diversity statement in BMES journals. [*Annals of Biomedical Engineering*.](https://link.springer.com/article/10.1007/s10439-021-02739-6)
-* D. Kwon (2022). The rise of citational justice: how scholars are making references fairer. [*Nature*.](https://www.nature.com/articles/d41586-022-00793-1)
-* C. Lopez Lloreda (2022). Women researchers are cited less than men. Here’s why—and what can be done about it. [*Science*.](https://www.science.org/content/article/women-researchers-cited-less-men-heres-why-what-can-done)
-
-For `.pdf` and `.tex` templates of the statement, see the `/diversityStatement` directory in this repository.
-
-A `.bib` file containing the references used in the statement can be found in `/diversityStatement/bibfile.bib`
-
-## Diversity statement template
-
-### Template
-
-> Recent work in several fields of science has identified a bias in citation practices such that papers from women and other minority scholars are under-cited relative to the number of such papers in the field (1-9). Here we sought to proactively consider choosing references that reflect the diversity of the field in thought, form of contribution, gender, race, ethnicity, and other factors. First, we obtained the predicted gender of the first and last author of each reference by using databases that store the probability of a first name being carried by a woman (5, 10). By this measure (and excluding self-citations to the first and last authors of our current paper), our references contain `A`% woman(first)/woman(last), `B`% man/woman, `C`% woman/man, `D`% man/man, and `E`% unknown categorization. This method is limited in that a) names, pronouns, and social media profiles used to construct the databases may not, in every case, be indicative of gender identity and b) it cannot account for intersex, non-binary, or transgender people. Second, we obtained predicted racial/ethnic category of the first and last author of each reference by databases that store the probability of a first and last name being carried by an author of color [11, 12]. By this measure (and excluding self-citations), our references contain `F`% author of color (first)/author of color(last), `G`% white author/author of color, `H`% author of color/white author, and `I`% white author/white author. This method is limited in that a) names, Census entries, and Wikipedia profiles used to make the predictions may not be indicative of racial/ethnic identity, and b) it cannot account for Indigenous and mixed-race authors, or those who may face differential biases due to the ambiguous racialization or ethnicization of their names.  We look forward to future work that could help us to better understand how to support equitable practices in science.
-
-### Benchmark across neuroscience
-
-For the top 5 neuroscience journals (Nature Neuroscience, Neuron, Brain, Journal of Neuroscience, and Neuroimage), the expected gender proportions in reference lists as reported by [Dworkin et al.](https://doi.org/10.1038/s41593-020-0658-y) are 6.7% for woman(first)/woman(last), 9.4% for man/woman, 25.5% for woman/man, and 58.4% for man/man. Expected proportions were calculated by randomly sampling papers from 28,505 articles in the 5 journals, estimating gender breakdowns using probabilistic name classification tools, and regressing for relevant article variables like publication date, journal, number of authors, review article or not, and first-/last-author seniority. See [Dworkin et al.](https://doi.org/10.1038/s41593-020-0658-y) for more details.
-
-Using a similar random draw model regressing for relevant variables, the expected race proportions in reference lists as reported by [Bertolero et al.](https://www.biorxiv.org/content/10.1101/2020.10.12.336230v1) were 51.8% for white/white, 12.8% for white/author-of-color, 23.5% for author-of-color/white, and 11.9% for author-of-color/author-of-color.
-
-### Benchmark for papers using this tool
-
-Papers with citation diversity statements tend to have more balanced reference lists with respect to the expected benchmarks. Prior to v1.1 (October 2020) of the code, the diversity statement only included predicted gender. Below, we show a preliminary visualization of the relative gender proportions in reference lists of papers with diversity statements (relative to the expected gender proportions) from January 2020 to January 2021. See the [cleanBibImpact repository](https://github.com/koudyk/cleanBibImpact) for the code and data for this ongoing project.
-
-![Citing papers' citation diversity, Kendra Oudyk](img/relative_diversity_with_swarm_with_title.png)
+Our manuscript in preparation calculates the expected gender and race/ethnicity proportions in reference lists for 2019. This section will be updated upon finalization of the manuscript.
 
 # Instructions
 
-The goal of the coding notebook is to analyze the predicted gender and race of first and last authors in reference lists of *manuscripts in progress*. The code will clean your `.bib` file to only contain references that you have cited in your manuscript. This cleaned `.bib` will then be used to generate a data table of names that will be used to query the probabilistic gender ([Gender API](https://gender-api.com)) and race ([ethnicolr](https://github.com/appeler/ethnicolr)) database. Proportions of the predicted gender for first and last author pairs (man/man, man/woman, woman/man, and woman/woman) and predicted race (white and author of color) will be calculated using the database probabilities.
+The goal of the coding notebook is to analyze the predicted gender and race/ethnicity of first and last authors in reference lists of *manuscripts in progress*. The code will clean your `.bib` file to only contain references that you have cited in your manuscript. This cleaned `.bib` will then be used to generate a data table of names that will be used to query the probabilistic gender ([Gender API](https://gender-api.com) or [genderize.io](https://genderize.io)) and race/ethnicity ([ethnicolr](https://github.com/appeler/ethnicolr)) database. Proportions of the predicted gender for first and last author pairs (man/man, man/woman, woman/man, and woman/woman) and predicted race (white and author of color) will be calculated using the database probabilities.
 
-<details>
-
-<summary>Can I use this code to analyze published article(s) instead of manuscripts in progress?</summary>
-We recognize that you might be curious about your or others' <b>history</b> of citation practices. The main purpose of the notebook is to increase awareness of how you engage with your colleagues' research for works in progress, and to iteratively assess if your <b>current</b> citation practices align with your values. That being said, we are developing analysis of published papers as a secondary feature by using data acquired from Web of Knowledge. However, we caution that this analysis is still in development. This approach will build a table by relying heavily on an automated search using CrossRef API from a single field provided by Web of Science. It will also require more extensive manual edits to the created table because automated search often returns incomplete information. Currently, the code for this secondary feature only supports prediction of gender for published paper(s). When considering how many published papers to analyze, note that Gender-API provides only 500 free searches per month. We recommend analyzing one paper at a time, which is also important to check for self-citations within each paper. If you intend to analyze the reference list of a published paper instead of your own manuscript in progress:
-
-___
-
-  1. Search the paper on [Web of Knowledge](http://apps.webofknowledge.com/) (you will need institutional access).
-  2. Next, [download the .bib file from Web of Science following these instructions, but start from Step 4 and on Step 6 select BibTeX instead of Plain Text](https://github.com/jdwor/gendercitation/blob/master/Step0_PullingWOSdata.pdf).
-  3. Then, [launch Binder from this link](https://mybinder.org/v2/gh/dalejn/cleanBib/7ffe1823397a77c8c068b549c7b428c79379232e).
-  4. Open the notebook `cleanBib.ipynb`. Follow the instructions above each code block. At the step where the instructions ask you to use `checkingPublishedArticle = True`, please run it using `checkingPublishedArticle = False` first. This will tell you if there are any errors in the .bib file that should be addressed. See FAQ for common errors.
-
-  It can take 10 minutes to 1 hour complete all of the instructions, depending on the state and size of your `.bib` file. We expect that the most time-consuming step will be manually modifying the `.bib` file to find missing author names, fill incomplete entries, and fix formatting errors. These problems arise because automated methods of reference mangagers and Google Scholar sometimes can not retrieve full information, for example if some journals only provide an author's first initial instead of their full first name.
-___
-
-</details>
+It can take 10 minutes to 1 hour complete all of the instructions, depending on the state and size of your `.bib` file. We expect that the most time-consuming step will be manually modifying the `.bib` file to find missing author names, fill incomplete entries, and fix formatting errors. These problems arise because automated methods of reference mangagers and Google Scholar sometimes can not retrieve full information, for example if some journals only provide an author's first initial instead of their full first name.
 
 1. Obtain a `.bib` file of your manuscript's reference list. You can do this with common reference managers. __Please try to export your .bib in an output style that uses full first names (rather than only first initials) and using the full author lists (rather than abbreviated author lists with "et al.").__ If a journal only provides first initials, our code will try to automatically find the full first name using the paper title or DOI (this can typically retrieve the first name 70% of the time).
 
