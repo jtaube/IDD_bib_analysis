@@ -308,7 +308,11 @@ def genderize_query(name, gender_threshold):
     response = urlopen(url)
     decoded = response.read().decode('utf-8')
     gender = json.loads(decoded)
-    if gender['gender'] == "female":
+
+    if gender['gender'] is None:
+        g = [0.5,0.5]
+        gender['gender'] = "unknown"
+    elif gender['gender'] == "female":
         if gender['probability'] >= gender_threshold:
             g = [0, gender['probability']]
         else: # below threshold
@@ -320,6 +324,7 @@ def genderize_query(name, gender_threshold):
         else: # below threshold
             g = [1 - gender['probability'], gender['probability']] 
             gender['gender'] = "unknown" # reset to unknown
+            
     return gender, g
     
 
