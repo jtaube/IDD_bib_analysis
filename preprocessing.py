@@ -342,21 +342,24 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
         FA = author[0] #.rich_first_names # what is rich_first_names? it's from pybtex and is a list of first names converted to rich text
         LA = author[-1] #.rich_first_names
 
-        if all(len(name) < 2 for name in str(FA).split(", ")[1].replace(".", "").split(" ")): # may need to move this after removal of protected characters
-            # split , so get first name, replace periods with plain initial, split on spaces so can see if all initials
-            FA_initials_check = True
-            print("initials: " + str(FA))
-        else:
-            FA_initials_check = False
-        if all(len(name) < 2 for name in str(LA).split(", ")[1].replace(".", "").split(" ")):
-            LA_initials_check = True
-            print("initials: " + str(LA))
-        else:
-            LA_initials_check = False
+        try:
+            if all(len(name) < 2 for name in str(FA).split(", ")[1].replace(".", "").split(" ")): # may need to move this after removal of protected characters
+                # split , so get first name, replace periods with plain initial, split on spaces so can see if all initials
+                FA_initials_check = True
+            else:
+                FA_initials_check = False
+            if all(len(name) < 2 for name in str(LA).split(", ")[1].replace(".", "").split(" ")):
+                LA_initials_check = True
+            else:
+                LA_initials_check = False
+        except IndexError:
+            print(str(counter) + ": " + key + "\t\t  <--  group author <-- ***NAME MISSING OR POSSIBLY INCOMPLETE ***")
+            continue
 
         # at this point FA looks like: [Text('Ryan')]
         FA = convertSpecialCharsToUTF8(str(FA)) # was latex conversion
         # this should deal with initial then first name, initial then first name then another initial, full first and middle names
+        # it will extract second initial if name is only initials
         FA = re.sub("([A-Z]{1}\.\s)*([a-zA-z]+)(\s{1}[a-zA-z]+\.?)*", lambda m: m.group(2), FA)
         #.translate(str.maketrans('', '', string.punctuation)).replace('Protected', "").replace(" ", "")# protected deals with accents
         # FA = re.sub("\s{1}[A-Z]{1}\.{1}|[A-Z]{1}\.{1}\s{1}", "", FA).replace(" ", "") # do I need this part that removed initials?
@@ -408,7 +411,8 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
                     used_xref = 'Y'
                 except (UnboundLocalError, KeyError):
                     sleep(1)
-
+        # sometimes the first and last author information from crossref is worse
+        
         selfCite = self_cites(author, yourFirstAuthor,yourLastAuthor, optionalEqualContributors, FA, LA, counter, key)
         counter += 1
         with open(outPath, 'a', newline='') as csvfile:
@@ -488,14 +492,14 @@ def self_cites(author, yourFirstAuthor, yourLastAuthor, optionalEqualContributor
                       selfCiteCheck2b]
     if sum([len(check) for check in selfCiteChecks]) + nameCount > 0:
         selfCite = 'Y'
-        if len(FA) < 2 or len(LA) < 2 or all(len(name) < 2 for name in FA.split(" ")) or all(len(name) < 2 for name in LA.split(" ")):
+        if len(FA) < 2 or len(LA) < 2 or any(len(name) < 2 for name in FA.split(", ")) or any(len(name) < 2 for name in LA.split(", ")):
             print(
                 str(counter) + ": " + key + "\t\t  <-- self-citation <--  ***NAME MISSING OR POSSIBLY INCOMPLETE***") # I messed this up somehow, need to fix
         else:
             print(str(counter) + ": " + key + "  <-- self-citation")
     else:
         selfCite = 'N'
-        if len(FA) < 2 or len(LA) < 2 or all(len(name) < 2 for name in FA.split(" ")) or all(len(name) < 2 for name in LA.split(" ")):
+        if len(FA) < 2 or len(LA) < 2 or any(len(name) < 2 for name in FA.split(", ")) or any(len(name) < 2 for name in LA.split(", ")):
             print(str(counter) + ": " + key + "\t\t  <--  ***NAME MISSING OR POSSIBLY INCOMPLETE***")
         else:
             print(str(counter) + ": " + key)
@@ -521,13 +525,13 @@ def bib_check(homedir):
         row_id, first_author, last_author, _, self_cite, bib_key, xref = row
         authors_full_list.append(first_author)  # For counting the number of query calls needed
         authors_full_list.append(last_author)
-        if len(first_author) < 2 or len(last_author) < 2 or '.' in first_author + last_author: # might need to change 
+        if len(first_author) < 2 or len(last_author) < 2 or '.' in first_author + last_author or len(first_author.split(", ")[1]) == 1 or len(last_author.split(", ")[1]) == 1: # might need to change 
             if bib_key not in skip_selfCites:
                 incomplete_name_bib_keys.append(bib_key)
 
     if len(incomplete_name_bib_keys) > 0:
         warning_message = "\n STOP: Please revise incomplete full first names or empty cells. Then, re-run step 2. "
-        warning_message += "Here are some suggestions to check for with the following citation keys in your .bib file: "
+        warning_message += "Here are some suggestions to check for with the following citation keys in your .bib file. Also look for group authors. "
         print(warning_message)
         print(incomplete_name_bib_keys)
 

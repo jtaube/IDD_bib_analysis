@@ -38,7 +38,10 @@ def namesFromXref(cr, doi, title, authorPos):
         name = ''
     else:
         # trim initials
-        name = authors[idx]['given'].replace('.', ' ').split()[0]
+        # but need last name!
+        fname = authors[idx]['given'].replace('.', ' ').split()[0]
+        lname = authors[idx]['family'].replace('.', ' ').split()[0]
+        name = lname + ", " + fname
 
     return name
 
@@ -293,13 +296,13 @@ def gen_api_query(gender_key, name, gender_threshold):
         else: # below threshold
             g = [gender['accuracy']/100., 1 - gender["accuracy"]/100.]
             gender['gender'] = "unknown" # reset to unknown
-    if gender['gender'] == 'male':
+    elif gender['gender'] == 'male':
         if gender['accuracy']/100. >= gender_threshold:
             g = [gender['accuracy']/100., 0]
         else: # below threshold
             g = [1 - gender['accuracy']/100., gender['accuracy']/100.] 
             gender['gender'] = "unknown" # reset to unknown
-    if gender['gender'] == 'unknown':
+    elif gender['gender'] == 'unknown':
         g = [0.5,0.5] # TODO: previously fills with base rate for year of the pub but we won't have this info so swap out, 50/50 chance? we could also set to makeup of field in 2019 or makeup in field from our calculations by year
     return gender, g
 
@@ -400,7 +403,7 @@ def plot_heatmaps(citation_matrix, homedir):
     # # there's is 8x8 and not fractions
     # expected = expected/np.sum(expected)
     # using global north values
-    'white_m','poc_m','white_w','poc_w'
+    # 'white_m','poc_m','white_w','poc_w'
     # FA - LA
     #[[WM-WM, WM-PM, WM-WW, WM-PW],
     # [PM-WM, PM-PM, PM-WW, PM-PW],
