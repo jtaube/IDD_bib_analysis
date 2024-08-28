@@ -18,7 +18,9 @@ def checkcites_output(aux_file):
     that are in .bib file but not in document'''
 
     result = subprocess.run(['texlua', 'checkcites.lua', aux_file[0]], stdout=subprocess.PIPE)
+    print(result)
     result = result.stdout.decode('utf-8')
+    print(result)
     unused_array_raw = result.split('\n')
     # process array of unused references + other output
     unused_array_final = list()
@@ -353,7 +355,7 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
             else:
                 LA_initials_check = False
         except IndexError:
-            print(str(counter) + ": " + key + "\t\t  <--  group author <-- ***NAME MISSING OR POSSIBLY INCOMPLETE ***")
+            print(str(counter) + ": " + key + "\t  <--  group author <-- ***NAME MISSING OR POSSIBLY INCOMPLETE ***")
             continue
 
         # at this point FA looks like: [Text('Ryan')]

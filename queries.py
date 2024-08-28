@@ -59,7 +59,7 @@ def namesFromXref(cr, doi, title, authorPos):
 
 
 def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', method='florida',
-                   gender_threshold = 0.7, no_credits_left = False):
+                   identity_threshold = 0.7, no_credits_left = False):
     """
 
     :param authors:
@@ -75,7 +75,7 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
 
     print('looping through your references, predicting gender and race')
 
-    columns = ['CitationKey', 'Author', 'Gender', 'W', 'A', 'GendCat']
+    columns = ['CitationKey', 'Author', 'Gender', 'W', 'PoC', 'GendCat', 'RaceCat']
     paper_df = pd.DataFrame(columns=columns)
 
     gender = []
@@ -187,10 +187,8 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         else:
             names = [{'lname': fa_lname, 'fname': fa_fname}]
             fa_df = pd.DataFrame(names, columns=['fname', 'lname'])
-            odf = pred_fl_reg_name(fa_df, 'lname', 'fname') # this is the query I think
             n_race_queries = n_race_queries + 1
-            # fa_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']] # 4race cats
-            fa_race = [odf['nh_white'][0], 1 - odf['nh_white'][0]] # mine, labelled lists causing problems
+            fa_race, fa_r = ethnicolr_query(fa_df, race_threshold)
             full_name_data[(fa_lname, fa_fname)] = fa_race
 
         if (la_lname, la_fname) in full_name_data:
@@ -198,10 +196,8 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         else:
             names = [{'lname': la_lname, 'fname': la_fname}]
             la_df = pd.DataFrame(names, columns=['fname', 'lname'])
-            odf = pred_fl_reg_name(la_df, 'lname', 'fname')
             n_race_queries = n_race_queries + 1
-            #la_race = [odf['nh_white'], odf['asian'], odf['hispanic'], odf['nh_black']] # 4race cats
-            la_race = [odf['nh_white'][0], 1 - odf['nh_white'][0]] # mine
+            la_race, la_r = ethnicolr_query(la_df, race_threshold)
             full_name_data[(la_lname, la_fname)] = la_race
 
         if fa_fname in first_name_data:
@@ -226,15 +222,15 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
                 la_gender, la_g = genderize_query(la_fname, gender_threshold) 
             #la_gender, la_g = "male", [0, 1]
             n_gen_queries= n_gen_queries + 1
-            first_name_data[la_fname] = (la_gender, la_g)
+            first_name_data[la_fname] = (la_gender, la_g) # storing so we don't query duplicates
 
         if total_names_needed > 100 or no_credits_left: # gender_API
             fa_data = np.array(
                 [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['accuracy']), fa_race[0],
-                 fa_race[1], ''], dtype = "object").reshape(1, 6)
+                 fa_race[1], '', ''], dtype = "object").reshape(1, 6)
             la_data = np.array(
                 [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['accuracy']), la_race[0],
-                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
+                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender']), '%s%s' % (fa_race['race'], la_race['race'])], dtype = "object").reshape(1, 6)
         else: # genderize.io
             fa_data = np.array(
                 [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']*100), fa_race[0],
@@ -242,7 +238,7 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
             
             la_data = np.array(
                 [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']*100), la_race[0],
-                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'])], dtype = "object").reshape(1, 6)
+                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'], la_gender['gender']), '%s%s' % (fa_race['race'], la_race['race'])], dtype = "object").reshape(1, 6)
             
         paper_df = pd.concat([paper_df, pd.DataFrame(fa_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
         paper_df = pd.concat([paper_df, pd.DataFrame(la_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
@@ -255,17 +251,17 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         mm, wm, mw, ww = [mm, wm, mw, ww] / np.sum([mm, wm, mw, ww]) # this could be sum of 0s and divide by 0
         gender.append([mm, wm, mw, ww])
         
-        ww = fa_race[0] * la_race[0]
-        aw = np.sum(fa_race[1:]) * la_race[0]
-        wa = fa_race[0] * np.sum(la_race[1:])
-        aa = np.sum(fa_race[1:]) * np.sum(la_race[1:])
-        race.append([ww, aw, wa, aa])
+        ww = fa_r[0] * la_r[0]
+        pw = fa_r[1] * la_r[0]
+        wp = fa_r[0] * la_r[1]
+        pp = fa_r[1] * la_r[1]
+        race.append([ww, pw, wp, pp])
         # we may want to change this to white vs PoC depending on sample size
 
         # paper_matrix = np.zeros((2, 8)) # 4race cats, two lists of length 8 (for intersectional identities), 1st for FA, 2nd for LA
         paper_matrix = np.zeros((2, 4)) 
-        paper_matrix[0] = np.outer(fa_g, fa_race).flatten() # these are our data, basically matrix multiplication to intersect identities
-        paper_matrix[1] = np.outer(la_g, la_race).flatten()
+        paper_matrix[0] = np.outer(fa_g, fa_r).flatten() # these are our data, basically matrix multiplication to intersect identities
+        paper_matrix[1] = np.outer(la_g, la_r).flatten()
 
         paper_matrix = np.outer(paper_matrix[0], paper_matrix[1]) # matrix multiply to address author position
 
@@ -277,12 +273,12 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
     print(f"Queried race/ethnicity api {n_race_queries} times out of {len(bibfile.entries)*2} entries")
 
     mm, wm, mw, ww = np.mean(gender, axis=0) * 100
-    WW, aw, wa, aa = np.mean(race, axis=0) * 100
+    WW, pw, wp, pp = np.mean(race, axis=0) * 100
 
     print("MM: " + str(mm) + " WM: " + str(wm) + " MW: " + str(mw) + " WW: " + str(ww))
-    print("WhWh: " + str(WW) + "PoCWh: " + str(aw) + " WhPoC: " + str(wa) + " PoCPoC: " + str(aa))
+    print("WhWh: " + str(WW) + " PoCWh: " + str(pw) + " WhPoC: " + str(wp) + " PoCPoC: " + str(pp))
 
-    return mm, wm, mw, ww, WW, aw, wa, aa, citation_matrix, paper_df
+    return mm, wm, mw, ww, WW, pw, wp, pp, citation_matrix, paper_df
 
 # this uses genderAPI, genderize.io is free for up to 100 a day with no API key
 def gen_api_query(gender_key, name, gender_threshold):
@@ -311,7 +307,7 @@ def genderize_query(name, gender_threshold):
     response = urlopen(url)
     decoded = response.read().decode('utf-8')
     gender = json.loads(decoded)
-
+    
     if gender['gender'] is None:
         g = [0.5,0.5]
         gender['gender'] = "unknown"
@@ -329,6 +325,18 @@ def genderize_query(name, gender_threshold):
             gender['gender'] = "unknown" # reset to unknown
             
     return gender, g
+
+def ethnicolr_query(author_df, race_threshold):
+    odf = pred_fl_reg_name(author_df, 'lname', 'fname') # this is the query I think
+    if odf['nh_white'][0] > race_threshold: # probability white is greater than threshold
+        race = {'race':'nh_white', 'probability':odf['nh_white'][0]}
+    else if odf['nh_white'][0] < 1 - race_threshold: # probability non-white is greater than threshold 
+        race = {'race':'poc', 'probability': 1 - odf['nh_white'][0]}
+    else: # unknown
+        race = {'race':'unknown', 'probability': odf['nh_white'][0]} # probability defaults to white if race unknown
+        
+    r = [odf['nh_white'][0], 1 - odf['nh_white'][0]] # trying to make this match gender
+    return race, r
     
 
 def print_statements(mm, wm, mw, ww, WW, aw, wa, aa):
