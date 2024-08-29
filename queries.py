@@ -132,6 +132,8 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         #if bibfile.entries[paper].fields['title'] in diversity_bib_titles:
         if paper.loc["Title"] in diversity_bib_titles:
             continue
+        if paper.loc["FA"] == paper.loc["LA"]: # skip if single author
+            continue
         # TODO: revisit this editor issue
         # if 'author' not in bibfile.entries[paper].persons.keys(): # not sure about this one
         #     continue  # some editorials have no authors
@@ -188,7 +190,7 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
             names = [{'lname': fa_lname, 'fname': fa_fname}]
             fa_df = pd.DataFrame(names, columns=['fname', 'lname'])
             n_race_queries = n_race_queries + 1
-            fa_race, fa_r = ethnicolr_query(fa_df, race_threshold)
+            fa_race, fa_r = ethnicolr_query(fa_df, identity_threshold)
             full_name_data[(fa_lname, fa_fname)] = fa_race
 
         if (la_lname, la_fname) in full_name_data:
@@ -197,17 +199,22 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
             names = [{'lname': la_lname, 'fname': la_fname}]
             la_df = pd.DataFrame(names, columns=['fname', 'lname'])
             n_race_queries = n_race_queries + 1
-            la_race, la_r = ethnicolr_query(la_df, race_threshold)
+            la_race, la_r = ethnicolr_query(la_df, identity_threshold)
             full_name_data[(la_lname, la_fname)] = la_race
+
+        print(fa_race)
+        print(la_race)
+        print(fa_r)
+        print(la_r)
 
         if fa_fname in first_name_data:
             fa_gender, fa_g = first_name_data[fa_fname]
         else:
             #print(fa_fname)
             if total_names_needed > 100 or no_credits_left:
-                fa_gender, fa_g = gen_api_query(gender_key, fa_fname, gender_threshold)
+                fa_gender, fa_g = gen_api_query(gender_key, fa_fname, identity_threshold)
             else:
-                fa_gender, fa_g = genderize_query(fa_fname, gender_threshold) 
+                fa_gender, fa_g = genderize_query(fa_fname, identity_threshold) 
             #fa_gender, fa_g = "female", [1, 0]
             n_gen_queries = n_gen_queries + 1
             first_name_data[fa_fname] = (fa_gender, fa_g)
@@ -217,28 +224,29 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
         else:
             #print(la_fname)
             if total_names_needed > 100 or no_credits_left:
-                la_gender, la_g = gen_api_query(gender_key, la_fname, gender_threshold)
+                la_gender, la_g = gen_api_query(gender_key, la_fname, identity_threshold)
             else:
-                la_gender, la_g = genderize_query(la_fname, gender_threshold) 
+                la_gender, la_g = genderize_query(la_fname, identity_threshold) 
             #la_gender, la_g = "male", [0, 1]
             n_gen_queries= n_gen_queries + 1
             first_name_data[la_fname] = (la_gender, la_g) # storing so we don't query duplicates
 
+        #columns = ['CitationKey', 'Author', 'Gender', 'W', 'PoC', 'GendCat', 'RaceCat']
         if total_names_needed > 100 or no_credits_left: # gender_API
             fa_data = np.array(
-                [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['accuracy']), fa_race[0],
-                 fa_race[1], '', ''], dtype = "object").reshape(1, 6)
+                [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['accuracy']), fa_r[0],
+                 fa_r[1], '', ''], dtype = "object").reshape(1, 7)
             la_data = np.array(
-                [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['accuracy']), la_race[0],
-                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender']), '%s%s' % (fa_race['race'], la_race['race'])], dtype = "object").reshape(1, 6)
+                [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['accuracy']), la_r[0],
+                 la_r[1], '%s%s' % (fa_gender['gender'], la_gender['gender']), '%s%s' % (fa_race['race'], la_race['race'])], dtype = "object").reshape(1, 7)
         else: # genderize.io
             fa_data = np.array(
-                [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']*100), fa_race[0],
-                 fa_race[1], ''], dtype = "object").reshape(1, 6)
+                [paper, '%s,%s' % (fa_fname, fa_lname), '%s,%s' % (fa_gender['gender'], fa_gender['probability']*100), fa_r[0],
+                 fa_r[1], '', ''], dtype = "object").reshape(1, 7)
             
             la_data = np.array(
-                [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']*100), la_race[0],
-                 la_race[1], '%s%s' % (fa_gender['gender'], la_gender['gender'], la_gender['gender']), '%s%s' % (fa_race['race'], la_race['race'])], dtype = "object").reshape(1, 6)
+                [paper, '%s,%s' % (la_fname, la_lname), '%s,%s' % (la_gender['gender'], la_gender['probability']*100), la_r[0],
+                 la_r[1], '%s%s' % (fa_gender['gender'], la_gender['gender']), '%s%s' % (fa_race['race'], la_race['race'])], dtype = "object").reshape(1, 7)
             
         paper_df = pd.concat([paper_df, pd.DataFrame(fa_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
         paper_df = pd.concat([paper_df, pd.DataFrame(la_data, columns=columns)], ignore_index=True) # replaced append with concat bc pandas update
@@ -330,7 +338,7 @@ def ethnicolr_query(author_df, race_threshold):
     odf = pred_fl_reg_name(author_df, 'lname', 'fname') # this is the query I think
     if odf['nh_white'][0] > race_threshold: # probability white is greater than threshold
         race = {'race':'nh_white', 'probability':odf['nh_white'][0]}
-    else if odf['nh_white'][0] < 1 - race_threshold: # probability non-white is greater than threshold 
+    elif odf['nh_white'][0] < 1 - race_threshold: # probability non-white is greater than threshold 
         race = {'race':'poc', 'probability': 1 - odf['nh_white'][0]}
     else: # unknown
         race = {'race':'unknown', 'probability': odf['nh_white'][0]} # probability defaults to white if race unknown
@@ -442,7 +450,13 @@ def plot_gender_histograms():
     names.GendCat = names.GendCat.str.replace('female', 'W', regex=False)
     names.GendCat = names.GendCat.str.replace('male', 'M', regex=False)
     names.GendCat = names.GendCat.str.replace('unknown', 'U', regex=False) # where are these Us from???
+    names.RaceCat = names.RaceCat.str.replace('nh_white', 'W', regex=False)
+    names.RaceCat = names.RaceCat.str.replace('poc', 'P', regex=False)
+    names.RaceCat = names.RaceCat.str.replace('unknown', 'U', regex=False) # where are these Us from???
     gend_cats = names['GendCat'].dropna().unique()  # get a vector of all the gender categories in your paper
+    race_cats = names['RaceCat'].dropna().unique()
+
+    # we'd really rather drop unknowns I think & single author papers to match our manuscript
 
     # Create a data frame that will be used to plot the histogram. This will have the gender category (e.g., WW, MM) in the first column and the percentage (e.g., number of WW citations divided by total number of citations * 100) in the second column #
     dat_for_plot = names.groupby('GendCat').size().reset_index()
@@ -483,7 +497,47 @@ def plot_gender_histograms():
     plt.ylabel('% of citations relative to benchmarks')
     plt.tight_layout()
 
-    ### TODO: repeat this for race/ethnicity!!
+    ### TODO: repeat this for race/ethnicity!! nOT FIXED YET!!
+    # Create a data frame that will be used to plot the histogram. This will have the race category (e.g., WP, PP) in the first column and the percentage (e.g., number of WW citations divided by total number of citations * 100) in the second column #
+    dat_for_plot = names.groupby('RaceCat').size().reset_index()
+    all_cats = ['WU', 'PP', 'UW', 'WP', 'PW', 'UP', 'WW'] # could we not have UU?
+    empty_dat_for_plot = pd.DataFrame(0, index=np.arange(7), columns=['RaceCat', 0])
+    empty_dat_for_plot['RaceCat'] = all_cats
+    set(dat_for_plot['RaceCat']).intersection(empty_dat_for_plot['RaceCat'])
+    for i in set(dat_for_plot['RaceCat']).intersection(empty_dat_for_plot['RaceCat']):
+        empty_dat_for_plot.loc[empty_dat_for_plot['RaceCat'] == i, 0] = dat_for_plot.loc[dat_for_plot['RaceCat']== i, 0].values
+    dat_for_plot = empty_dat_for_plot
+    dat_for_plot.rename(columns={0:'count'}, inplace=True)
+    dat_for_plot = dat_for_plot.assign(percentage=dat_for_plot['count']/total_citations*100)
+
+    # Create a data frame with only the WW, MW, WM, MM categories and their base rates - to plot percent citations relative to benchmarks
+    dat_for_baserate_plot = dat_for_plot.loc[(dat_for_plot.RaceCat == 'WW') |
+                                             (dat_for_plot.RaceCat == 'PW') |
+                                             (dat_for_plot.RaceCat == 'WP') |
+                                             (dat_for_plot.RaceCat == 'PP'),:]
+# except our rates for PoC are either author or both are POC, so how can we modify this?
+    # MM,MW,WM,WW
+    # 58.4% for man/man, 9.4% for man/woman, 25.5% for woman/man, and 6.7% for woman/woman
+    #baserate = [6.7, 9.4, 25.5, 58.4]
+    baserate = [0.74, 0.26] # base rates for IDD from JCT
+    dat_for_baserate_plot['baserate'] = baserate
+    dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=
+                                                         dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate
+                                                         )
+
+    # plot
+    plt.figure()
+    sns.barplot(data=dat_for_plot, x='GendCat', y='count', order=np.flip(gend_cats), hue='GendCat')
+    plt.xlabel('Predicted gender category')
+    plt.ylabel('Number of papers')
+    plt.tight_layout()
+
+    plt.figure()
+    sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='citation_rel_to_baserate', order=['MM','WM','MW','WW'], hue='GendCat')
+    plt.xlabel('Predicted gender category')
+    plt.ylabel('% of citations relative to benchmarks')
+    plt.tight_layout()
+
 
 
 def check_genderAPI_balance(genderAPI_key, homedir):

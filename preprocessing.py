@@ -18,9 +18,7 @@ def checkcites_output(aux_file):
     that are in .bib file but not in document'''
 
     result = subprocess.run(['texlua', 'checkcites.lua', aux_file[0]], stdout=subprocess.PIPE)
-    print(result)
     result = result.stdout.decode('utf-8')
-    print(result)
     unused_array_raw = result.split('\n')
     # process array of unused references + other output
     unused_array_final = list()
