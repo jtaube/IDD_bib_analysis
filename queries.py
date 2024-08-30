@@ -118,7 +118,7 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
     # save base gender rates - we can't run this so what will happen? --> throws an error, should we ask them?
     # gender_base = get_gender_base(homedir)
     # make a dictionary of names so we don't query the same thing twice
-    full_name_data = {}
+    full_name_data = {} 
     first_name_data = {}
     n_gen_queries = 0
     n_race_queries = 0
@@ -457,15 +457,17 @@ def plot_gender_histograms():
     race_cats = names['RaceCat'].dropna().unique()
 
     # we'd really rather drop unknowns I think & single author papers to match our manuscript
+    # dropped single authors in get_names above, need to deal with unknowns here
 
     # Create a data frame that will be used to plot the histogram. This will have the gender category (e.g., WW, MM) in the first column and the percentage (e.g., number of WW citations divided by total number of citations * 100) in the second column #
     dat_for_plot = names.groupby('GendCat').size().reset_index()
     all_cats = ['MU', 'WW', 'UM', 'MW', 'WM', 'UW', 'MM']
     empty_dat_for_plot = pd.DataFrame(0, index=np.arange(7), columns=['GendCat', 0])
     empty_dat_for_plot['GendCat'] = all_cats
-    set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat'])
+    set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat']) # can drop unknowns if don't allow them in all_cats maybe
     for i in set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat']):
-        empty_dat_for_plot.loc[empty_dat_for_plot['GendCat'] == i, 0] = dat_for_plot.loc[dat_for_plot['GendCat']== i, 0].values
+        empty_dat_for_plot.loc[empty_dat_for_plot['GendCat'] == i, 0] = dat_for_plot.loc[dat_for_plot['GendCat']== i, 0].values 
+        # filling in rows with paper counts
     dat_for_plot = empty_dat_for_plot
     dat_for_plot.rename(columns={0:'count'}, inplace=True)
     dat_for_plot = dat_for_plot.assign(percentage=dat_for_plot['count']/total_citations*100)
@@ -478,7 +480,7 @@ def plot_gender_histograms():
     # MM,MW,WM,WW
     # 58.4% for man/man, 9.4% for man/woman, 25.5% for woman/man, and 6.7% for woman/woman
     #baserate = [6.7, 9.4, 25.5, 58.4]
-    baserate = [63, 18, 11.3, 7.7] # base rates for IDD from JCT
+    baserate = [7.1, 12.7, 20.2, 60.0] # base rates for IDD from JCT, switched order
     dat_for_baserate_plot['baserate'] = baserate
     dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=
                                                          dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate
@@ -486,7 +488,7 @@ def plot_gender_histograms():
 
     # plot
     plt.figure()
-    sns.barplot(data=dat_for_plot, x='GendCat', y='count', order=np.flip(gend_cats), hue='GendCat')
+    sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='count', order=['MM','WM','MW','WW'], hue='GendCat')
     plt.xlabel('Predicted gender category')
     plt.ylabel('Number of papers')
     plt.tight_layout()
