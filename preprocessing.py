@@ -149,6 +149,13 @@ def find_unused_cites(paper_aux_file):
     unused_in_paper = checkcites_output(paper_aux_file)  # get citations in library not used in paper
     print("Unused citations: ", unused_in_paper.count('=>'))
 
+    # fix from Dale
+    # Use regex to find all strings following '=>'
+    bib_entries = re.findall(r'=>\s*(\S+)', unused_in_paper)
+
+    print("Extracted bib entries: ", bib_entries)
+    return bib_entries
+
 def get_bib_data(filename, parser="bparser"):
     """
 
@@ -296,7 +303,7 @@ def get_names_published(homedir, bib_data, cr):
     return FA, LA
 
 
-def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualContributors, cr):
+def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualContributors, cr, unused_keys=None):
     """
     take bib_data, and get lists of first and last names. should also get self cites and CDS cites
     :return: FA
@@ -333,6 +340,10 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
                                 'Predicting race and ethnicity from the sequence of characters in a name']
         if bib_data.entries[key].fields['title'] in diversity_bib_titles:
             continue
+        # Dale fix
+        if unused_keys:
+            if key in unused_keys:
+                continue
 
         try:
             author = bib_data.entries[key].persons['author']

@@ -58,7 +58,7 @@ def namesFromXref(cr, doi, title, authorPos):
 #     return gender_base
 
 
-def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', method='florida',
+def get_pred_demos(authors, homedir, bibfile, gender_key, unused_keys=None, font='Palatino', method='florida',
                    identity_threshold = 0.7, no_credits_left = False):
     """
 
@@ -134,6 +134,9 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, font='Palatino', metho
             continue
         if paper.loc["FA"] == paper.loc["LA"]: # skip if single author
             continue
+        if unused_keys:
+            if paper.loc["CitationKey"] in unused_keys: # TODO: which element of paper would be in unused_keys
+                continue
         # TODO: revisit this editor issue
         # if 'author' not in bibfile.entries[paper].persons.keys(): # not sure about this one
         #     continue  # some editorials have no authors
