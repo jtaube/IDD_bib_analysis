@@ -455,8 +455,8 @@ def plot_gender_histograms():
 
     # Create a data frame that will be used to plot the histogram. This will have the gender category (e.g., WW, MM) in the first column and the percentage (e.g., number of WW citations divided by total number of citations * 100) in the second column #
     dat_for_plot = names.groupby('GendCat').size().reset_index()
-    all_cats = ['WW', 'MW', 'WM', 'MM'] 3 drops unknowns
-    empty_dat_for_plot = pd.DataFrame(0, index=np.arange(7), columns=['GendCat', 0]) # 7 bc num unique cats
+    all_cats = ['WW', 'MW', 'WM', 'MM'] # drops unknowns
+    empty_dat_for_plot = pd.DataFrame(0, index=np.arange(4), columns=['GendCat', 0]) # 7 bc num unique cats
     empty_dat_for_plot['GendCat'] = all_cats
     #set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat']) # can drop unknowns if don't allow them in all_cats maybe
     for i in set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat']):
@@ -519,7 +519,7 @@ def plot_race_histograms():
     
     for i in set(dat_for_plot['RaceCat']).intersection(empty_dat_for_plot['RaceCat']):
         empty_dat_for_plot.loc[empty_dat_for_plot['RaceCat'] == i, 0] = dat_for_plot.loc[dat_for_plot['RaceCat']== i, 0].values
-    print(empty_dat_for_plot)
+
     dat_for_plot = empty_dat_for_plot
     dat_for_plot.rename(columns={0:'count'}, inplace=True)
     total_citations = dat_for_plot['count'].sum()
