@@ -311,6 +311,7 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
     """
     counter = 1
     outPath = homedir + 'cleanedBib.csv'
+    group_authors = False
 
     if os.path.exists(outPath):
         os.remove(outPath)
@@ -365,7 +366,8 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
                 LA_initials_check = False
         except IndexError:
             print(str(counter) + ": " + key + "\t  <--  group author <-- ***NAME MISSING OR POSSIBLY INCOMPLETE ***")
-            continue
+            group_authors = True
+            continue # this means group authors won't be in cleanedBib.csv until they are fixed
 
         # at this point FA looks like: [Text('Ryan')]
         FA = convertSpecialCharsToUTF8(str(FA)) # was latex conversion
@@ -430,6 +432,7 @@ def get_names(homedir, bib_data, yourFirstAuthor, yourLastAuthor, optionalEqualC
             writer = csv.writer(csvfile, delimiter=',') #, quotechar='|', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(
                 [counter, convertSpecialCharsToUTF8(FA), convertSpecialCharsToUTF8(LA), title, selfCite, key, used_xref])
+    return group_authors
 
 
 def self_cites(author, yourFirstAuthor, yourLastAuthor, optionalEqualContributors, FA, LA, counter, key):
@@ -518,7 +521,7 @@ def self_cites(author, yourFirstAuthor, yourLastAuthor, optionalEqualContributor
     return selfCite
 
 
-def bib_check(homedir):
+def bib_check(homedir, group_authors):
     # Do a final check on the bibliography entries
     authors_full_list = pd.read_csv(homedir + 'cleanedBib.csv')
     skip_selfCites = list(authors_full_list.loc[authors_full_list['SelfCite'] == 'Y']['CitationKey'])
@@ -540,11 +543,12 @@ def bib_check(homedir):
             if bib_key not in skip_selfCites:
                 incomplete_name_bib_keys.append(bib_key)
 
-    if len(incomplete_name_bib_keys) > 0:
-        warning_message = "\n STOP: Please revise incomplete full first names or empty cells. Then, re-run step 2. "
-        warning_message += "Here are some suggestions to check for with the following citation keys in your .bib file. Also look for group authors. "
-        print(warning_message)
-        print(incomplete_name_bib_keys)
+    if len(incomplete_name_bib_keys) > 0 or group_authors is True:
+        print("\n STOP: Please revise incomplete full first names or empty cells. Then, re-run step 2. ")
+        if len(incomplete_name_bib_keys) > 0:
+            print("Here are some suggestions to check for with the following citation keys in your .bib file.")
+            print(incomplete_name_bib_keys)
+        print("Be sure to address articles with group authors, flagged in the output above! Either delete the entries from the .bib file or replace the first or last author with an individual name.")
 
     final_warning_message = "\n Only continue if you've run step 2,"
     final_warning_message += " and this code no longer returns error or instructions to revise the .bib file."

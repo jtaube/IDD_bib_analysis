@@ -205,11 +205,6 @@ def get_pred_demos(authors, homedir, bibfile, gender_key, unused_keys=None, font
             la_race, la_r = ethnicolr_query(la_df, identity_threshold)
             full_name_data[(la_lname, la_fname)] = la_race
 
-        print(fa_race)
-        print(la_race)
-        print(fa_r)
-        print(la_r)
-
         if fa_fname in first_name_data:
             fa_gender, fa_g = first_name_data[fa_fname]
         else:
@@ -449,31 +444,29 @@ def plot_heatmaps(citation_matrix, homedir):
 def plot_gender_histograms():
     # Plot a histogram #
     names = pd.read_csv('predictions.csv')
-    total_citations = names.CitationKey.nunique()
+    #total_citations = names.CitationKey.nunique() # if some are unknown this will be wrong
     names.GendCat = names.GendCat.str.replace('female', 'W', regex=False)
     names.GendCat = names.GendCat.str.replace('male', 'M', regex=False)
     names.GendCat = names.GendCat.str.replace('unknown', 'U', regex=False) # where are these Us from???
-    names.RaceCat = names.RaceCat.str.replace('nh_white', 'W', regex=False)
-    names.RaceCat = names.RaceCat.str.replace('poc', 'P', regex=False)
-    names.RaceCat = names.RaceCat.str.replace('unknown', 'U', regex=False) # where are these Us from???
     gend_cats = names['GendCat'].dropna().unique()  # get a vector of all the gender categories in your paper
-    race_cats = names['RaceCat'].dropna().unique()
 
     # we'd really rather drop unknowns I think & single author papers to match our manuscript
     # dropped single authors in get_names above, need to deal with unknowns here
 
     # Create a data frame that will be used to plot the histogram. This will have the gender category (e.g., WW, MM) in the first column and the percentage (e.g., number of WW citations divided by total number of citations * 100) in the second column #
     dat_for_plot = names.groupby('GendCat').size().reset_index()
-    all_cats = ['MU', 'WW', 'UM', 'MW', 'WM', 'UW', 'MM']
-    empty_dat_for_plot = pd.DataFrame(0, index=np.arange(7), columns=['GendCat', 0])
+    all_cats = ['WW', 'MW', 'WM', 'MM'] 3 drops unknowns
+    empty_dat_for_plot = pd.DataFrame(0, index=np.arange(7), columns=['GendCat', 0]) # 7 bc num unique cats
     empty_dat_for_plot['GendCat'] = all_cats
-    set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat']) # can drop unknowns if don't allow them in all_cats maybe
+    #set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat']) # can drop unknowns if don't allow them in all_cats maybe
     for i in set(dat_for_plot['GendCat']).intersection(empty_dat_for_plot['GendCat']):
         empty_dat_for_plot.loc[empty_dat_for_plot['GendCat'] == i, 0] = dat_for_plot.loc[dat_for_plot['GendCat']== i, 0].values 
         # filling in rows with paper counts
     dat_for_plot = empty_dat_for_plot
     dat_for_plot.rename(columns={0:'count'}, inplace=True)
+    total_citations = dat_for_plot['count'].sum()
     dat_for_plot = dat_for_plot.assign(percentage=dat_for_plot['count']/total_citations*100)
+    # no unknown genders right now so can't even check this
 
     # Create a data frame with only the WW, MW, WM, MM categories and their base rates - to plot percent citations relative to benchmarks
     dat_for_baserate_plot = dat_for_plot.loc[(dat_for_plot.GendCat == 'MM') |
@@ -485,63 +478,82 @@ def plot_gender_histograms():
     #baserate = [6.7, 9.4, 25.5, 58.4]
     baserate = [7.1, 12.7, 20.2, 60.0] # base rates for IDD from JCT, switched order
     dat_for_baserate_plot['baserate'] = baserate
-    dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=
-                                                         dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate
-                                                         )
+    dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate = dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate,
+                                                         over_under_rate = (dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)
+    # is it ok over/under is calculated from percentages here and not total citations? I think so bc 100s would cancel
 
     # plot
     plt.figure()
-    sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='count', order=['MM','WM','MW','WW'], hue='GendCat')
-    plt.xlabel('Predicted gender category')
+    ax = sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='count', order=['MM','WM','MW','WW'], hue='GendCat', dodge = False)
+    plt.xlabel('Inferred gender category')
     plt.ylabel('Number of papers')
+    #plt.yaxis.set_major_locator(ticker.MultipleLocator(2)) # left off here, trying to set y axis to integer breaks
+    ax.set_yticks(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
+    ax.set_yticklabels(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
     plt.tight_layout()
-
+    plt.legend([],[], frameon=False)
+    
+    
     plt.figure()
-    sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='citation_rel_to_baserate', order=['MM','WM','MW','WW'], hue='GendCat')
-    plt.xlabel('Predicted gender category')
+    ax = sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='citation_rel_to_baserate', order=['MM','WM','MW','WW'], hue='GendCat', dodge = False)
+    ax.axhline(0, color="k", clip_on=False)
+    plt.xlabel('Inferred gender category')
     plt.ylabel('% of citations relative to benchmarks')
     plt.tight_layout()
+    plt.legend([],[], frameon=False)
 
-    ### TODO: repeat this for race/ethnicity!! nOT FIXED YET!!
+def plot_race_histograms(): 
+    # Plot a histogram #
+    names = pd.read_csv('predictions.csv')
+    #total_citations = names.CitationKey.nunique() # if unknowns this will be wrong
+    names.RaceCat = names.RaceCat.str.replace('nh_white', 'W', regex=False)
+    names.RaceCat = names.RaceCat.str.replace('poc', 'P', regex=False)
+    names.RaceCat = names.RaceCat.str.replace('unknown', 'U', regex=False) # where are these Us from???
+    race_cats = names['RaceCat'].dropna().unique()
+
     # Create a data frame that will be used to plot the histogram. This will have the race category (e.g., WP, PP) in the first column and the percentage (e.g., number of WW citations divided by total number of citations * 100) in the second column #
     dat_for_plot = names.groupby('RaceCat').size().reset_index()
-    all_cats = ['WU', 'PP', 'UW', 'WP', 'PW', 'UP', 'WW'] # could we not have UU?
-    empty_dat_for_plot = pd.DataFrame(0, index=np.arange(7), columns=['RaceCat', 0])
+    all_cats = ['PP', 'WP', 'PW', 'WW'] # drops unknowns
+    empty_dat_for_plot = pd.DataFrame(0, index=np.arange(4), columns=['RaceCat', 0])
     empty_dat_for_plot['RaceCat'] = all_cats
-    set(dat_for_plot['RaceCat']).intersection(empty_dat_for_plot['RaceCat'])
+    
     for i in set(dat_for_plot['RaceCat']).intersection(empty_dat_for_plot['RaceCat']):
         empty_dat_for_plot.loc[empty_dat_for_plot['RaceCat'] == i, 0] = dat_for_plot.loc[dat_for_plot['RaceCat']== i, 0].values
+    print(empty_dat_for_plot)
     dat_for_plot = empty_dat_for_plot
     dat_for_plot.rename(columns={0:'count'}, inplace=True)
+    total_citations = dat_for_plot['count'].sum()
     dat_for_plot = dat_for_plot.assign(percentage=dat_for_plot['count']/total_citations*100)
 
     # Create a data frame with only the WW, MW, WM, MM categories and their base rates - to plot percent citations relative to benchmarks
-    dat_for_baserate_plot = dat_for_plot.loc[(dat_for_plot.RaceCat == 'WW') |
-                                             (dat_for_plot.RaceCat == 'PW') |
-                                             (dat_for_plot.RaceCat == 'WP') |
-                                             (dat_for_plot.RaceCat == 'PP'),:]
-# except our rates for PoC are either author or both are POC, so how can we modify this?
-    # MM,MW,WM,WW
-    # 58.4% for man/man, 9.4% for man/woman, 25.5% for woman/man, and 6.7% for woman/woman
-    #baserate = [6.7, 9.4, 25.5, 58.4]
-    baserate = [0.74, 0.26] # base rates for IDD from JCT
+    dat_for_baserate_plot = dat_for_plot.loc[dat_for_plot.RaceCat == 'WW',:] # we only want this one bc we will collapse all articles with PoC authors
+    dat_for_baserate_plot.loc[1,:] = ['PorP', int(total_citations - dat_for_plot.loc[3, 'count']), 100 - dat_for_plot.loc[3, 'percentage']]
+    dat_for_baserate_plot = dat_for_baserate_plot.astype({"count": int})
+
+    baserate = [74.2, 25.8] # base rates for IDD from JCT
     dat_for_baserate_plot['baserate'] = baserate
-    dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=
-                                                         dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate
-                                                         )
+    dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate,
+                                                     over_under_rate = (dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)
 
     # plot
     plt.figure()
-    sns.barplot(data=dat_for_plot, x='GendCat', y='count', order=np.flip(gend_cats), hue='GendCat')
-    plt.xlabel('Predicted gender category')
+    ax = sns.barplot(data=dat_for_baserate_plot, x='RaceCat', y='count', order=['WW','PorP'], hue='RaceCat', dodge = False)
+    plt.xlabel('Predicted race category')
     plt.ylabel('Number of papers')
+    #plt.yaxis.set_major_locator(ticker.MultipleLocator(2)) # left off here, trying to set y axis to integer breaks
+    ax.set_yticks(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
+    ax.set_yticklabels(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
     plt.tight_layout()
-
+    plt.legend([],[], frameon=False)
+    
+    
     plt.figure()
-    sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='citation_rel_to_baserate', order=['MM','WM','MW','WW'], hue='GendCat')
-    plt.xlabel('Predicted gender category')
+    ax = sns.barplot(data=dat_for_baserate_plot, x='RaceCat', y='citation_rel_to_baserate', order=['WW','PorP'], hue='RaceCat', dodge = False)
+    ax.axhline(0, color="k", clip_on=False)
+    plt.xlabel('Predicted race category')
     plt.ylabel('% of citations relative to benchmarks')
     plt.tight_layout()
+    plt.legend([],[], frameon=False)
 
 
 
