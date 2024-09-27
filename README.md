@@ -1,4 +1,4 @@
-This repo accompanies our manuscript in preparation on the extent of gender and race/ethnicity imbalance in infectious disease dynamics publication and citation practices. Much of the code is drawn from Dale Zhou and colleagues' [repository](https://github.com/dalejn/cleanBib) and this work was inspired by Jordan Dworkin and colleagues' [work](https://doi.org/10.1038/s41593-020-0658-y) in neuroscience.
+This repo accompanies our manuscript in preparation on the extent and drivers of gender and race/ethnicity imbalance in infectious disease dynamics publication and citation practices. Much of the code is drawn from Dale Zhou and colleagues' [repository](https://github.com/dalejn/cleanBib) and this work was inspired by Jordan Dworkin and colleagues' [work](https://doi.org/10.1038/s41593-020-0658-y) in neuroscience.
 
 ## Instructions
 
@@ -19,9 +19,9 @@ The goal of the coding notebook is to analyze the predicted gender and race/ethn
 
 2. Launch the coding environment. Please refresh the page if the Binder does not load after 5-10 mins. Sometimes this takes multiple attempts. Alternatively you can clone the repo but it requires several package installations.
 
-    __Option 1 (recommended)__: Visit https://notebooks.gesis.org/binder/, paste https://github.com/dalejn/cleanBib into the GitHub repository name or URL field, and press "launch."
+    __Option 1 (recommended)__: Visit https://notebooks.gesis.org/binder/, paste https://github.com/jtaube/IDD_bib_analysis into the GitHub repository name or URL field, and press "launch."
 
-    __Option 2 (experiencing intermittent server issues)__: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/dalejn/cleanBib/HEAD?urlpath=/tree/)
+    __Option 2 (experiencing intermittent server issues)__: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jtaube/IDD_bib_analysis/HEAD?urlpath=/tree/)
 
 4. Open the notebook `cleanBib.ipynb`. Follow the instructions above each code block. It can take 10 minutes to 1 hour complete all of the instructions, depending on the state and size of your `.bib` file. We expect that the most time-consuming step will be manually modifying the `.bib` file to find missing author names, fill incomplete entries, and fix formatting errors. These problems arise because automated methods of reference managers and Google Scholar sometimes can not retrieve full information, for example if some journals only provide an author's first initial instead of their full first name.
 
