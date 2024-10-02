@@ -1,10 +1,10 @@
-This repo accompanies our manuscript in preparation on the extent of gender and race/ethnicity imbalance in infectious disease dynamics publication and citation practices. Much of the code is drawn from Dale Zhou and colleagues' [repository](https://github.com/dalejn/cleanBib) and this work was inspired by Jordan Dworkin and colleagues' [work](https://doi.org/10.1038/s41593-020-0658-y) in neuroscience.
+This repo accompanies our manuscript in preparation on the extent and drivers of gender and race/ethnicity imbalance in infectious disease dynamics publication and citation practices. Much of the code is drawn from Dale Zhou and colleagues' [repository](https://github.com/dalejn/cleanBib) and this work was inspired by Jordan Dworkin and colleagues' [work](https://doi.org/10.1038/s41593-020-0658-y) in neuroscience.
 
 ## Instructions
 
-The goal of the coding notebook is to analyze the predicted gender and race/ethnicity of first and last authors in reference lists of *manuscripts in progress*. The code will clean your `.bib` file to only contain references that you have cited in your manuscript. This cleaned `.bib` will then be used to generate a data table of names that will be used to query the probabilistic gender ([Gender API](https://gender-api.com) or [genderize.io](https://genderize.io)) and race/ethnicity ([ethnicolr](https://github.com/appeler/ethnicolr)) database. Proportions of the predicted gender for first and last author pairs (man/man, man/woman, woman/man, and woman/woman) and predicted race (white and author of color) will be calculated using the database probabilities.
+The goal of the coding notebook is to analyze the predicted gender and race/ethnicity of first and last authors in reference lists of *manuscripts in progress*. The code will clean your `.bib` file to only contain references that you have cited in your manuscript. This cleaned `.bib` will then be used to generate a data table of names that will be used to query the probabilistic gender ([Gender API](https://gender-api.com) or [genderize.io](https://genderize.io)) and race/ethnicity ([ethnicolr](https://github.com/appeler/ethnicolr)) database. Proportions of the predicted gender for first and last author pairs (man/man, man/woman, woman/man, and woman/woman) and predicted race (white/white and first and/or last author of color) will be calculated using the database probabilities.
 
-1. Obtain a `.bib` file of your manuscript's reference list. You can do this with common reference managers. __Please try to export your .bib in an output style that uses full first names (rather than only first initials) and using the full author lists (rather than abbreviated author lists with "et al.").__ If a journal only provides first initials, our code will try to automatically find the full first name using the paper title or DOI (this can typically retrieve the first name 70% of the time).
+1. Obtain a `.bib` file of your manuscript's reference list. You can do this with common reference managers. __Please try to export your .bib in an output style that uses full first names (rather than only first initials) and using the full author lists (rather than abbreviated author lists with "et al.").__ If a journal only provides first initials, the code will try to automatically find the full first name using the paper title or DOI (this can typically retrieve the first name 70% of the time).
 
    * [Export `.bib` from Mendeley](https://blog.mendeley.com/2011/10/25/howto-use-mendeley-to-create-citations-using-latex-and-bibtex/)
    * [Export `.bib` from Zotero](https://libguides.mit.edu/ld.php?content_id=34248570)
@@ -17,15 +17,13 @@ The goal of the coding notebook is to analyze the predicted gender and race/ethn
    * [Export `.bib` from EndNote](https://www.reed.edu/cis/help/LaTeX/EndNote.html). Note: Please export full first names by either [choosing an output style that does so by default (e.g. in MLA style)](https://canterbury.libguides.com/endnote/basics-output)
    * [Export `.bib` from Read Cube Papers](https://support.papersapp.com/support/solutions/articles/30000024634-how-can-i-export-references-from-readcube-papers-)
 
-2. Launch the coding environment. Please refresh the page if the Binder does not load after 5-10 mins.
+2. Launch the coding environment. Please refresh the page if the Binder does not load after 5-10 mins. Sometimes this takes multiple attempts. Alternatively you can clone the repo but it requires several package installations.
 
-   This part doesn't work yet!!! Download the code as a zip file in the meantime.
+    __Option 1 (recommended)__: Visit https://notebooks.gesis.org/binder/, paste https://github.com/jtaube/IDD_bib_analysis into the GitHub repository name or URL field, and press "launch."
 
-    __Option 1 (recommended)__: Visit https://notebooks.gesis.org/binder/, paste https://github.com/dalejn/cleanBib into the GitHub repository name or URL field, and press "launch."
+    __Option 2 (experiencing intermittent server issues)__: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jtaube/IDD_bib_analysis/HEAD?urlpath=/tree/)
 
-    __Option 2 (experiencing intermittent server issues)__: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/dalejn/cleanBib/HEAD?urlpath=/tree/)
-
-4. Open the notebook `cleanBib.ipynb`. Follow the instructions above each code block. It can take 10 minutes to 1 hour complete all of the instructions, depending on the state and size of your `.bib` file. We expect that the most time-consuming step will be manually modifying the `.bib` file to find missing author names, fill incomplete entries, and fix formatting errors. These problems arise because automated methods of reference mangagers and Google Scholar sometimes can not retrieve full information, for example if some journals only provide an author's first initial instead of their full first name.
+4. Open the notebook `cleanBib.ipynb`. Follow the instructions above each code block. It can take 10 minutes to 1 hour complete all of the instructions, depending on the state and size of your `.bib` file. We expect that the most time-consuming step will be manually modifying the `.bib` file to find missing author names, fill incomplete entries, and fix formatting errors. These problems arise because automated methods of reference managers and Google Scholar sometimes can not retrieve full information, for example if some journals only provide an author's first initial instead of their full first name.
 
 ## Input/output
 
@@ -33,8 +31,7 @@ The goal of the coding notebook is to analyze the predicted gender and race/ethn
 |-----------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | `.bib` file(s)**(REQUIRED)**    | `cleanedBib.csv`: table of author first names, titles, and .bib keys                                                            |
 | `.aux` file (OPTIONAL)| `predictions.csv`: table of author first names, estimated gender classification, and confidence                                   |
-| `.tex` file (OPTIONAL) | `race_gender_citations.pdf`: heat map of your citations broken down by probabilistic gender and race estimations
-|                       | `yourTexFile_gendercolor.tex`: your `.tex` file modified to compile .pdf with in-line citations colored-coded by gender pairs |
+|                       | `race_gender_citations.pdf`: heat map of your citations broken down by probabilistic gender and race estimations
 
 # FAQ
 
@@ -101,13 +98,13 @@ This error message could indicate that you have cited a book and there is no `au
 <details>
   <summary>What if a reference has only 1 author?</summary>
 
-* We count that author as both the first and last author.
+* We omit that paper from your analysis.
 </details>
 
 <details>
   <summary>What if the author list includes a committee or consortium?</summary>
 
-* Please use either the last named author or the lead of the committee/consortium.
+* Please use either the closest named author (first or last) or the lead of the committee/consortium.
 </details>
 
 <details>
