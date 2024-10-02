@@ -423,7 +423,7 @@ def plot_heatmaps(citation_matrix, homedir):
     # [PM-WM, PM-PM, PM-WW, PM-PW],
     # [WW-WM, WW-PM, WW-WW, WW-PW],
     # [PW-WM, PW-PM, PW-WW, PW-PW]] # check that this is right matrix setup
-    
+    # how did I get these?
     expected = [[0.12, 0.11, 0.04, 0.03],
                 [0.16, 0.14, 0.05, 0.03],
                 [0.08, 0.07, 0.03, 0.02],
@@ -479,28 +479,33 @@ def plot_gender_histograms():
     baserate = [7.1, 12.7, 20.2, 60.0] # base rates for IDD from JCT, switched order
     dat_for_baserate_plot['baserate'] = baserate
     dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate = dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate,
-                                                         over_under_rate = (dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)
+                                                         over_under_perc = ((dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)*100)
     # is it ok over/under is calculated from percentages here and not total citations? I think so bc 100s would cancel
-
+    print(dat_for_baserate_plot)
+    
     # plot
     plt.figure()
-    ax = sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='count', order=['MM','WM','MW','WW'], hue='GendCat', dodge = False)
-    plt.xlabel('Inferred gender category')
-    plt.ylabel('Number of papers')
+    fig, ax = plt.subplots(1, 2)
+    p1 = sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='count', order=['MM','WM','MW','WW'], hue='GendCat', dodge = False, ax = ax[0])
+    ax[0].set(xlabel='Inferred gender category', ylabel='Number of papers')
     #plt.yaxis.set_major_locator(ticker.MultipleLocator(2)) # left off here, trying to set y axis to integer breaks
-    ax.set_yticks(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
-    ax.set_yticklabels(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
-    plt.tight_layout()
-    plt.legend([],[], frameon=False)
+    p1.set_yticks(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
+    p1.set_yticklabels(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
+    #plt.tight_layout()
+    #plt.legend([],[], frameon=False)
     
     
-    plt.figure()
-    ax = sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='citation_rel_to_baserate', order=['MM','WM','MW','WW'], hue='GendCat', dodge = False)
-    ax.axhline(0, color="k", clip_on=False)
-    plt.xlabel('Inferred gender category')
-    plt.ylabel('% of citations relative to benchmarks')
-    plt.tight_layout()
-    plt.legend([],[], frameon=False)
+    #plt.figure()
+    p2 = sns.barplot(data=dat_for_baserate_plot, x='GendCat', y='over_under_perc', order=['MM','WM','MW','WW'], hue='GendCat', dodge = False, ax = ax[1])
+    p2.axhline(0, color="k", clip_on=False)
+    ax[1].set(xlabel='Inferred gender category', ylabel='% over/under citation')
+    #plt.tight_layout()
+    #plt.legend([],[], frameon=False)
+
+    p1.get_legend().remove()
+    p2.get_legend().remove()
+    fig.tight_layout()
+    fig.show()
 
 def plot_race_histograms(): 
     # Plot a histogram #
@@ -527,33 +532,44 @@ def plot_race_histograms():
 
     # Create a data frame with only the WW, MW, WM, MM categories and their base rates - to plot percent citations relative to benchmarks
     dat_for_baserate_plot = dat_for_plot.loc[dat_for_plot.RaceCat == 'WW',:] # we only want this one bc we will collapse all articles with PoC authors
-    dat_for_baserate_plot.loc[1,:] = ['PorP', int(total_citations - dat_for_plot.loc[3, 'count']), 100 - dat_for_plot.loc[3, 'percentage']]
+    addition = pd.DataFrame(columns = dat_for_baserate_plot.columns, 
+                            data = [['PorP', 
+                                      int(total_citations - dat_for_plot.loc[3, 'count']), 
+                                      100 - dat_for_plot.loc[3, 'percentage']]])
+    dat_for_baserate_plot = pd.concat([dat_for_baserate_plot, addition], axis = 0)
+    print(dat_for_baserate_plot)
     dat_for_baserate_plot = dat_for_baserate_plot.astype({"count": int})
 
     baserate = [74.2, 25.8] # base rates for IDD from JCT
     dat_for_baserate_plot['baserate'] = baserate
     dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate,
-                                                     over_under_rate = (dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)
+                                                     over_under_perc = ((dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)*100)
+
+    print(dat_for_baserate_plot)
 
     # plot
     plt.figure()
-    ax = sns.barplot(data=dat_for_baserate_plot, x='RaceCat', y='count', order=['WW','PorP'], hue='RaceCat', dodge = False)
-    plt.xlabel('Predicted race category')
-    plt.ylabel('Number of papers')
+    fig, ax = plt.subplots(1, 2)
+    p1 = sns.barplot(data=dat_for_baserate_plot, x='RaceCat', y='count', order=['WW','PorP'], hue='RaceCat', dodge = False, ax = ax[0])
+    ax[0].set(xlabel='Inferred race category', ylabel='Number of papers')
     #plt.yaxis.set_major_locator(ticker.MultipleLocator(2)) # left off here, trying to set y axis to integer breaks
-    ax.set_yticks(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
-    ax.set_yticklabels(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
-    plt.tight_layout()
-    plt.legend([],[], frameon=False)
+    p1.set_yticks(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
+    p1.set_yticklabels(range(0, max(dat_for_baserate_plot['count']) + 1, 2))
+    #plt.tight_layout()
+    #plt.legend([],[], frameon=False)
     
     
-    plt.figure()
-    ax = sns.barplot(data=dat_for_baserate_plot, x='RaceCat', y='citation_rel_to_baserate', order=['WW','PorP'], hue='RaceCat', dodge = False)
-    ax.axhline(0, color="k", clip_on=False)
-    plt.xlabel('Predicted race category')
-    plt.ylabel('% of citations relative to benchmarks')
-    plt.tight_layout()
-    plt.legend([],[], frameon=False)
+    #plt.figure()
+    p2 = sns.barplot(data=dat_for_baserate_plot, x='RaceCat', y='over_under_perc', order=['WW','PorP'], hue='RaceCat', dodge = False, ax = ax[1])
+    p2.axhline(0, color="k", clip_on=False)
+    ax[1].set(xlabel='Inferred race category', ylabel='% over/under citation rate')
+    #plt.tight_layout()
+    #plt.legend([],[], frameon=False)
+
+    p1.get_legend().remove()
+    p2.get_legend().remove()
+    fig.tight_layout()
+    fig.show()
 
 
 
