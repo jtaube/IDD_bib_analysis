@@ -507,6 +507,8 @@ def plot_gender_histograms():
     fig.tight_layout()
     fig.show()
 
+    plt.savefig('gender_results.pdf')
+
 def plot_race_histograms(): 
     # Plot a histogram #
     names = pd.read_csv('predictions.csv')
@@ -571,6 +573,7 @@ def plot_race_histograms():
     fig.tight_layout()
     fig.show()
 
+    plt.savefig('race_results.pdf')
 
 
 def check_genderAPI_balance(genderAPI_key, homedir):
