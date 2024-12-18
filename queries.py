@@ -476,7 +476,7 @@ def plot_gender_histograms():
     # MM,MW,WM,WW
     # 58.4% for man/man, 9.4% for man/woman, 25.5% for woman/man, and 6.7% for woman/woman
     #baserate = [6.7, 9.4, 25.5, 58.4]
-    baserate = [7.1, 12.7, 20.2, 60.0] # base rates for IDD from JCT, switched order
+    baserate = [7.1, 13.3, 18.8, 60.8] # base rates for IDD from JCT, switched order
     dat_for_baserate_plot['baserate'] = baserate
     dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate = dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate,
                                                          over_under_perc = ((dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)*100)
@@ -542,7 +542,7 @@ def plot_race_histograms():
     print(dat_for_baserate_plot)
     dat_for_baserate_plot = dat_for_baserate_plot.astype({"count": int})
 
-    baserate = [74.2, 25.8] # base rates for IDD from JCT
+    baserate = [70.7, 29.3] # base rates for IDD from JCT
     dat_for_baserate_plot['baserate'] = baserate
     dat_for_baserate_plot = dat_for_baserate_plot.assign(citation_rel_to_baserate=dat_for_baserate_plot.percentage - dat_for_baserate_plot.baserate,
                                                      over_under_perc = ((dat_for_baserate_plot.percentage/dat_for_baserate_plot.baserate) - 1)*100)
