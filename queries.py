@@ -502,8 +502,8 @@ def plot_gender_histograms():
     #plt.tight_layout()
     #plt.legend([],[], frameon=False)
 
-    p1.get_legend().remove()
-    p2.get_legend().remove()
+    #p1.get_legend().remove()
+    #p2.get_legend().remove()
     fig.tight_layout()
     fig.show()
 
@@ -568,8 +568,8 @@ def plot_race_histograms():
     #plt.tight_layout()
     #plt.legend([],[], frameon=False)
 
-    p1.get_legend().remove()
-    p2.get_legend().remove()
+    #p1.get_legend().remove()
+    #p2.get_legend().remove()
     fig.tight_layout()
     fig.show()
 
